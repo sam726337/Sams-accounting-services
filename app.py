@@ -737,7 +737,7 @@ def main():
     app.setStyle("Fusion")
 
     window = DashboardWindow()
-    window.show()
+    window.showMaximized()
 
     sys.exit(app.exec())
 
