@@ -1,7 +1,10 @@
 import sys
+import urllib.error
+import urllib.request
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QThread, Signal
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -11,7 +14,9 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMainWindow,
+    QPlainTextEdit,
     QPushButton,
     QProgressBar,
     QScrollArea,
@@ -25,6 +30,54 @@ from PySide6.QtWidgets import (
 
 APP_NAME = "Sam's Accounting Desktop"
 APP_VERSION = "v1.0.1"
+DEFAULT_TALLY_URL = "http://127.0.0.1:9000"
+TIMEOUT_SECONDS = 8
+
+COMPANY_PROBE_XML = """<ENVELOPE>
+  <HEADER>
+    <VERSION>1</VERSION>
+    <TALLYREQUEST>Export</TALLYREQUEST>
+    <TYPE>Collection</TYPE>
+    <ID>Company</ID>
+  </HEADER>
+  <BODY>
+    <DESC>
+      <STATICVARIABLES>
+        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+      </STATICVARIABLES>
+      <TDL>
+        <TDLMESSAGE>
+          <COLLECTION NAME="Company">
+            <TYPE>Company</TYPE>
+            <FETCH>Name</FETCH>
+          </COLLECTION>
+        </TDLMESSAGE>
+      </TDL>
+    </DESC>
+  </BODY>
+</ENVELOPE>"""
+
+LEDGERS_XML = """<ENVELOPE>
+  <HEADER>
+    <VERSION>1</VERSION>
+    <TALLYREQUEST>EXPORT</TALLYREQUEST>
+    <TYPE>COLLECTION</TYPE>
+    <ID>List of Ledgers</ID>
+  </HEADER>
+  <BODY>
+    <DESC>
+      <TDL>
+        <TDLMESSAGE>
+          <COLLECTION NAME="List of Ledgers" ISMODIFY="No">
+            <TYPE>Ledger</TYPE>
+            <NATIVEMETHOD>Name</NATIVEMETHOD>
+            <NATIVEMETHOD>Parent</NATIVEMETHOD>
+          </COLLECTION>
+        </TDLMESSAGE>
+      </TDL>
+    </DESC>
+  </BODY>
+</ENVELOPE>"""
 
 
 @dataclass(frozen=True)
@@ -128,6 +181,127 @@ def make_icon(text: str, color: str, size: int = 38, radius: int = 9) -> QIcon:
     painter.end()
 
     return QIcon(pixmap)
+
+
+def clean_text(value: str | None) -> str:
+    return " ".join((value or "").split())
+
+
+def tag_name(element: ET.Element) -> str:
+    return element.tag.rsplit("}", 1)[-1].upper()
+
+
+def post_tally_xml(tally_url: str, xml: str) -> str:
+    request = urllib.request.Request(
+        tally_url.rstrip("/"),
+        data=xml.encode("utf-8"),
+        headers={
+            "Content-Type": "text/xml; charset=utf-8",
+            "User-Agent": "SamsAccountingDesktop/1.0",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+        return response.read().decode("utf-8", errors="replace")
+
+
+def parse_company_names(raw_response: str) -> list[str]:
+    try:
+        root = ET.fromstring(raw_response)
+    except ET.ParseError:
+        return []
+
+    companies: list[str] = []
+    seen: set[str] = set()
+    for element in root.iter():
+        if tag_name(element) not in {"COMPANY", "NAME", "CMPNAME"}:
+            continue
+        name = clean_text(element.attrib.get("NAME") or element.text)
+        if name and name not in seen:
+            seen.add(name)
+            companies.append(name)
+    return companies
+
+
+def parse_ledgers(raw_response: str, query: str = "") -> list[str]:
+    root = ET.fromstring(raw_response)
+    ledgers: list[str] = []
+    seen: set[str] = set()
+
+    for element in root.iter():
+        if tag_name(element) != "LEDGER":
+            continue
+        name = clean_text(element.attrib.get("NAME"))
+        if not name:
+            for child in element:
+                if tag_name(child) == "NAME":
+                    name = clean_text(child.text)
+                    break
+        if name and name not in seen:
+            seen.add(name)
+            ledgers.append(name)
+
+    if not ledgers:
+        for element in root.iter():
+            if tag_name(element) in {"DSPDISPNAME", "DSPACCNAME", "LEDGERNAME", "NAME"}:
+                name = clean_text(element.text)
+                if name and name not in seen:
+                    seen.add(name)
+                    ledgers.append(name)
+
+    needle = query.strip().lower()
+    if needle:
+        ledgers = [ledger for ledger in ledgers if needle in ledger.lower()]
+    return ledgers
+
+
+def test_tally_connection(tally_url: str) -> tuple[bool, str, list[str]]:
+    try:
+        response = post_tally_xml(tally_url, COMPANY_PROBE_XML)
+    except urllib.error.URLError as exc:
+        return False, f"Tally not reachable at {tally_url}: {exc.reason}", []
+    except TimeoutError:
+        return False, f"Tally timed out at {tally_url}", []
+
+    if "<LINEERROR>" in response.upper():
+        return False, "Tally responded, but returned an XML line error.", []
+
+    companies = parse_company_names(response)
+    if companies:
+        return True, f"Tally connected. Active company: {companies[0]}", companies
+    if "ENVELOPE" in response.upper() or "COMPANY" in response.upper():
+        return True, f"Tally connected at {tally_url}", []
+    return True, f"Tally responded at {tally_url}", []
+
+
+def fetch_tally_ledgers(tally_url: str, query: str = "") -> list[str]:
+    response = post_tally_xml(tally_url, LEDGERS_XML)
+    if "<LINEERROR>" in response.upper():
+        raise RuntimeError("Tally returned an XML line error while fetching ledgers.")
+    return parse_ledgers(response, query=query)
+
+
+class TallyWorker(QThread):
+    finished = Signal(str, bool, str, object)
+
+    def __init__(self, action: str, tally_url: str, query: str = ""):
+        super().__init__()
+        self.action = action
+        self.tally_url = tally_url
+        self.query = query
+
+    def run(self):
+        try:
+            if self.action == "test":
+                ok, message, companies = test_tally_connection(self.tally_url)
+                self.finished.emit(self.action, ok, message, companies)
+            elif self.action == "ledgers":
+                ledgers = fetch_tally_ledgers(self.tally_url, self.query)
+                self.finished.emit(self.action, True, f"Fetched {len(ledgers)} ledgers from Tally.", ledgers)
+            else:
+                self.finished.emit(self.action, False, f"Unknown action: {self.action}", [])
+        except Exception as exc:
+            self.finished.emit(self.action, False, str(exc), [])
 
 
 class AppButton(QPushButton):
@@ -236,63 +410,122 @@ class ModuleCard(QFrame):
         layout.addLayout(body)
 
 
-class HealthPanel(QFrame):
+class TallyConnectorPanel(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("sidePanel")
+        self.worker: TallyWorker | None = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 18, 18, 18)
-        layout.setSpacing(14)
+        layout.setSpacing(12)
 
-        title = QLabel("System Health")
+        title = QLabel("Tally Connector")
         title.setObjectName("sectionTitle")
         layout.addWidget(title)
 
-        rows = [
-            ("Tally Prime", "Connected", "#0f766e"),
-            ("Subscription", "Verified", "#0f766e"),
-            ("AI Credit", "Rs 500.0000", "#2563eb"),
-            ("Backup Mode", "CSV optional", "#475467"),
-        ]
+        self.status_label = QLabel("Not tested")
+        self.status_label.setObjectName("connectorStatusIdle")
+        layout.addWidget(self.status_label)
 
-        for label, value, color in rows:
-            layout.addLayout(self.health_row(label, value, color))
+        url_label = QLabel("Tally HTTP URL")
+        url_label.setObjectName("mutedLabel")
+        layout.addWidget(url_label)
 
-        progress_label = QLabel("Workflow readiness")
-        progress_label.setObjectName("mutedLabel")
-        layout.addWidget(progress_label)
+        self.url_input = QLineEdit(DEFAULT_TALLY_URL)
+        self.url_input.setObjectName("searchBox")
+        layout.addWidget(self.url_input)
 
-        progress = QProgressBar()
-        progress.setRange(0, 100)
-        progress.setValue(88)
-        progress.setTextVisible(False)
-        progress.setObjectName("healthProgress")
-        layout.addWidget(progress)
+        connect_row = QHBoxLayout()
+        self.test_button = AppButton("Test Connection", "primary")
+        self.test_button.clicked.connect(self.test_connection)
+        self.fetch_button = AppButton("Fetch Ledgers", "secondary")
+        self.fetch_button.clicked.connect(self.fetch_ledgers)
+        connect_row.addWidget(self.test_button)
+        connect_row.addWidget(self.fetch_button)
+        layout.addLayout(connect_row)
 
-        layout.addStretch()
+        query_label = QLabel("Ledger search")
+        query_label.setObjectName("mutedLabel")
+        layout.addWidget(query_label)
 
-        quick_title = QLabel("Quick Actions")
-        quick_title.setObjectName("sectionTitle")
-        layout.addWidget(quick_title)
-        layout.addWidget(AppButton("Connect Tally", "primary"))
-        layout.addWidget(AppButton("Import Excel", "secondary"))
-        layout.addWidget(AppButton("Parse Statement", "secondary"))
+        self.query_input = QLineEdit()
+        self.query_input.setObjectName("searchBox")
+        self.query_input.setPlaceholderText("Example: sales, cash, bank")
+        layout.addWidget(self.query_input)
 
-    def health_row(self, label: str, value: str, color: str) -> QHBoxLayout:
-        row = QHBoxLayout()
-        dot = QFrame()
-        dot.setFixedSize(8, 8)
-        dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
-        name = QLabel(label)
-        name.setObjectName("mutedLabel")
-        status = QLabel(value)
-        status.setObjectName("healthValue")
-        row.addWidget(dot)
-        row.addWidget(name)
-        row.addStretch()
-        row.addWidget(status)
-        return row
+        self.company_label = QLabel("Company: -")
+        self.company_label.setObjectName("healthValue")
+        layout.addWidget(self.company_label)
+
+        ledgers_title = QLabel("Ledgers")
+        ledgers_title.setObjectName("sectionTitle")
+        layout.addWidget(ledgers_title)
+
+        self.ledger_list = QListWidget()
+        self.ledger_list.setObjectName("ledgerList")
+        self.ledger_list.setMinimumHeight(170)
+        layout.addWidget(self.ledger_list)
+
+        log_title = QLabel("Connector log")
+        log_title.setObjectName("sectionTitle")
+        layout.addWidget(log_title)
+
+        self.log = QPlainTextEdit()
+        self.log.setObjectName("connectorLog")
+        self.log.setReadOnly(True)
+        self.log.setMaximumBlockCount(80)
+        self.log.setPlainText(
+            "Tally Prime me HTTP server port 9000 enable karein, company open rakhein, phir Test Connection dabayein."
+        )
+        layout.addWidget(self.log)
+
+    def tally_url(self) -> str:
+        return self.url_input.text().strip().rstrip("/") or DEFAULT_TALLY_URL
+
+    def set_busy(self, busy: bool):
+        self.test_button.setEnabled(not busy)
+        self.fetch_button.setEnabled(not busy)
+        if busy:
+            self.status_label.setText("Working...")
+            self.status_label.setObjectName("connectorStatusIdle")
+            self.status_label.style().unpolish(self.status_label)
+            self.status_label.style().polish(self.status_label)
+
+    def append_log(self, message: str):
+        self.log.appendPlainText(message)
+
+    def test_connection(self):
+        self.start_worker("test")
+
+    def fetch_ledgers(self):
+        self.start_worker("ledgers", query=self.query_input.text())
+
+    def start_worker(self, action: str, query: str = ""):
+        if self.worker and self.worker.isRunning():
+            return
+        self.set_busy(True)
+        self.append_log(f"> {action} {self.tally_url()}")
+        self.worker = TallyWorker(action, self.tally_url(), query=query)
+        self.worker.finished.connect(self.handle_worker_finished)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.start()
+
+    def handle_worker_finished(self, action: str, ok: bool, message: str, payload: object):
+        self.set_busy(False)
+        self.status_label.setText("Connected" if ok else "Failed")
+        self.status_label.setObjectName("connectorStatusOk" if ok else "connectorStatusError")
+        self.status_label.style().unpolish(self.status_label)
+        self.status_label.style().polish(self.status_label)
+        self.append_log(("OK: " if ok else "ERROR: ") + message)
+
+        if action == "test" and ok:
+            companies = payload if isinstance(payload, list) else []
+            self.company_label.setText(f"Company: {companies[0]}" if companies else "Company: Tally responded")
+        elif action == "ledgers" and ok:
+            ledgers = payload if isinstance(payload, list) else []
+            self.ledger_list.clear()
+            self.ledger_list.addItems(ledgers[:200])
 
 
 class ActivityTable(QFrame):
@@ -432,7 +665,7 @@ class DashboardWindow(QMainWindow):
         middle = QHBoxLayout()
         middle.setSpacing(18)
         middle.addLayout(self.module_grid(), 3)
-        middle.addWidget(HealthPanel(), 1)
+        middle.addWidget(TallyConnectorPanel(), 1)
         layout.addLayout(middle)
         layout.addWidget(ActivityTable())
 
@@ -664,6 +897,30 @@ class DashboardWindow(QMainWindow):
                 font-weight: 700;
             }
 
+            QLabel#connectorStatusIdle,
+            QLabel#connectorStatusOk,
+            QLabel#connectorStatusError {
+                border-radius: 10px;
+                padding: 8px 10px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+
+            QLabel#connectorStatusIdle {
+                background: #f1f5f9;
+                color: #475467;
+            }
+
+            QLabel#connectorStatusOk {
+                background: #ecfdf3;
+                color: #067647;
+            }
+
+            QLabel#connectorStatusError {
+                background: #fef3f2;
+                color: #b42318;
+            }
+
             QLineEdit#searchBox {
                 background: #f8fafc;
                 border: 1px solid #d9e0ea;
@@ -708,6 +965,35 @@ class DashboardWindow(QMainWindow):
             QProgressBar#healthProgress::chunk {
                 background: #0f766e;
                 border-radius: 4px;
+            }
+
+            QListWidget#ledgerList {
+                background: #f8fafc;
+                border: 1px solid #d9e0ea;
+                border-radius: 7px;
+                padding: 6px;
+                color: #101828;
+                font-size: 12px;
+            }
+
+            QListWidget#ledgerList::item {
+                padding: 7px;
+                border-radius: 5px;
+            }
+
+            QListWidget#ledgerList::item:selected {
+                background: #d9f3ef;
+                color: #101828;
+            }
+
+            QPlainTextEdit#connectorLog {
+                background: #101828;
+                color: #d0d5dd;
+                border: 0;
+                border-radius: 7px;
+                padding: 9px;
+                font-family: Consolas;
+                font-size: 11px;
             }
 
             QTableWidget#activityTable {
