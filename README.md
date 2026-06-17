@@ -10,6 +10,33 @@ python -m venv ".venv"
 & ".venv\Scripts\python.exe" app.py
 ```
 
+Alternative module entrypoint:
+
+```powershell
+& ".venv\Scripts\python.exe" -m sams_accounting_desktop
+```
+
+Project layout:
+
+```text
+app.py
+sams_accounting_desktop/
+  config.py
+  data.py
+  main.py
+  models.py
+  services/
+    tally_client.py
+  ui/
+    components.py
+    dashboard_window.py
+    icons.py
+    styles.py
+    tally_panel.py
+  workers/
+    tally_worker.py
+```
+
 Tally connector:
 
 1. Tally Prime open rakhein.

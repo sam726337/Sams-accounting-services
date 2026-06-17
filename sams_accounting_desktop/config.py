@@ -1,0 +1,4 @@
+APP_NAME = "Sam's Accounting Desktop"
+APP_VERSION = "v1.0.1"
+DEFAULT_TALLY_URL = "http://127.0.0.1:9000"
+TIMEOUT_SECONDS = 8
