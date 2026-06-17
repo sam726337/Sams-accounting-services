@@ -2,9 +2,10 @@
 
 Local-only PySide6 desktop UI draft for Sam's Accounting.
 
-Run:
+Setup and run:
 
 ```powershell
-pip install -r "desktop app\requirements.txt"
-python "desktop app\app.py"
+python -m venv ".venv"
+& ".venv\Scripts\python.exe" -m pip install -r requirements.txt
+& ".venv\Scripts\python.exe" app.py
 ```
