@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 from sams_accounting_desktop.config import APP_NAME, APP_VERSION
 from sams_accounting_desktop.data import MODULES
 from sams_accounting_desktop.ui.components import ActivityTable, AppButton, InsightCard, KpiCard, ModuleCard, NavItem, StatusChip
-from sams_accounting_desktop.ui.icons import make_icon, make_menu_icon
+from sams_accounting_desktop.ui.icons import logo_icon, logo_pixmap, make_menu_icon
 from sams_accounting_desktop.ui.purchase_reco_panel import PurchaseRecoPanel
 from sams_accounting_desktop.ui.styles import STYLESHEET
 from sams_accounting_desktop.ui.tally_panel import TallyConnectorPanel
@@ -24,7 +24,7 @@ class DashboardWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} {APP_VERSION}")
-        self.setWindowIcon(make_icon("SA", "#0f766e", 64))
+        self.setWindowIcon(logo_icon(64))
         self.setMinimumSize(1180, 740)
         self.resize(1320, 820)
         self.nav_buttons: dict[str, NavItem] = {}
@@ -59,7 +59,7 @@ class DashboardWindow(QMainWindow):
         brand = QHBoxLayout()
         brand.setSpacing(12)
         logo = QLabel()
-        logo.setPixmap(make_icon("SA", "#14b8a6", 44, 10).pixmap(44, 44))
+        logo.setPixmap(logo_pixmap(46))
         brand.addWidget(logo)
 
         brand_copy = QWidget()

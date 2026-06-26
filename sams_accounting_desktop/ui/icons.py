@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPixmap
 
@@ -17,6 +19,37 @@ def make_icon(text: str, color: str, size: int = 38, radius: int = 9) -> QIcon:
     painter.end()
 
     return QIcon(pixmap)
+
+
+def logo_path() -> Path | None:
+    current_file = Path(__file__).resolve()
+    candidates = [
+        current_file.parents[1] / "assets" / "logo.jpeg",
+        current_file.parents[2] / "assets" / "logo.jpeg",
+        current_file.parents[3] / "site" / "assets" / "logo.jpeg",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def logo_pixmap(size: int = 48) -> QPixmap:
+    path = logo_path()
+    if path is not None:
+        pixmap = QPixmap(str(path))
+        if not pixmap.isNull():
+            return pixmap.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    return make_icon("SA", "#0f766e", size, max(8, size // 5)).pixmap(size, size)
+
+
+def logo_icon(size: int = 64) -> QIcon:
+    path = logo_path()
+    if path is not None:
+        icon = QIcon(str(path))
+        if not icon.isNull():
+            return icon
+    return make_icon("SA", "#0f766e", size, max(8, size // 5))
 
 
 def make_menu_icon(size: int = 28, color: str = "#0f766e") -> QIcon:

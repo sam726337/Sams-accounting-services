@@ -15,7 +15,7 @@ from sams_accounting_desktop.config import APP_NAME, APP_VERSION
 from sams_accounting_desktop.services.update_checker import UpdateInfo
 from sams_accounting_desktop.state import start_local_trial, verify_license_details
 from sams_accounting_desktop.ui.components import AppButton, StatusChip
-from sams_accounting_desktop.ui.icons import make_icon
+from sams_accounting_desktop.ui.icons import logo_icon, logo_pixmap
 from sams_accounting_desktop.ui.styles import STYLESHEET
 
 
@@ -24,7 +24,7 @@ class SplashScreen(QWidget):
         super().__init__()
         self.setWindowTitle(APP_NAME)
         self.setObjectName("startupWindow")
-        self.setWindowIcon(make_icon("SA", "#0f766e", 64))
+        self.setWindowIcon(logo_icon(64))
         self.setFixedSize(560, 340)
         self.setStyleSheet(STYLESHEET)
 
@@ -40,7 +40,7 @@ class SplashScreen(QWidget):
 
         brand = QHBoxLayout()
         logo = QLabel()
-        logo.setPixmap(make_icon("SA", "#0f766e", 58, 12).pixmap(58, 58))
+        logo.setPixmap(logo_pixmap(62))
         brand.addWidget(logo)
         brand_copy = QVBoxLayout()
         title = QLabel("Sams Accounting Desktop")
@@ -74,7 +74,7 @@ class LicenseWindow(QWidget):
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} License")
         self.setObjectName("startupWindow")
-        self.setWindowIcon(make_icon("SA", "#0f766e", 64))
+        self.setWindowIcon(logo_icon(64))
         self.setMinimumSize(760, 500)
         self.setStyleSheet(STYLESHEET)
 
@@ -88,7 +88,7 @@ class LicenseWindow(QWidget):
         intro_layout.setContentsMargins(26, 26, 26, 26)
         intro_layout.setSpacing(14)
         logo = QLabel()
-        logo.setPixmap(make_icon("SA", "#14b8a6", 64, 14).pixmap(64, 64))
+        logo.setPixmap(logo_pixmap(68))
         intro_layout.addWidget(logo)
         title = QLabel("License check")
         title.setObjectName("startupTitleLight")
@@ -173,7 +173,7 @@ class UpdatePrompt(QWidget):
         self.info = info
         self.setWindowTitle(f"{APP_NAME} Update")
         self.setObjectName("startupWindow")
-        self.setWindowIcon(make_icon("SA", "#0f766e", 64))
+        self.setWindowIcon(logo_icon(64))
         self.setMinimumSize(720, 460)
         self.setStyleSheet(STYLESHEET)
 
@@ -187,7 +187,7 @@ class UpdatePrompt(QWidget):
         intro_layout.setContentsMargins(26, 26, 26, 26)
         intro_layout.setSpacing(14)
         logo = QLabel()
-        logo.setPixmap(make_icon("UP", "#14b8a6", 64, 14).pixmap(64, 64))
+        logo.setPixmap(logo_pixmap(68))
         intro_layout.addWidget(logo)
         title = QLabel("Update available")
         title.setObjectName("startupTitleLight")
