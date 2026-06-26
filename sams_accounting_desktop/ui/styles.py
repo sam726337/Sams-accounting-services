@@ -12,7 +12,8 @@ THEME = {
 
 STYLESHEET = """
 QWidget#shell,
-QWidget#workspace {
+QWidget#workspace,
+QWidget#startupWindow {
     background: #f4f7fb;
     color: #101828;
     font-family: Segoe UI;
@@ -92,9 +93,15 @@ QFrame#activityPanel,
 QFrame#recoPanel,
 QFrame#insightCard,
 QFrame#stepperPanel,
-QFrame#detailPanel {
+QFrame#detailPanel,
+QFrame#startupCard {
     background: #ffffff;
     border: 1px solid #d9e0ea;
+    border-radius: 8px;
+}
+
+QFrame#startupHero {
+    background: #0b1220;
     border-radius: 8px;
 }
 
@@ -110,6 +117,29 @@ QLabel#pageTitle {
     color: #101828;
     font-size: 22px;
     font-weight: 700;
+}
+
+QLabel#startupTitle {
+    color: #101828;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+QLabel#startupTitleLight {
+    color: #ffffff;
+    font-size: 26px;
+    font-weight: 800;
+}
+
+QLabel#startupSubtitle,
+QLabel#startupBody {
+    color: #667085;
+    font-size: 13px;
+}
+
+QLabel#startupBodyLight {
+    color: #d0d5dd;
+    font-size: 14px;
 }
 
 QLabel#pageSubtitle,
