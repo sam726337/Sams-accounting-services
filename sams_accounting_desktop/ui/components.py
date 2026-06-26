@@ -31,19 +31,29 @@ class AppButton(QPushButton):
 class NavItem(QPushButton):
     def __init__(self, label: str, initials: str, active: bool = False):
         super().__init__(label)
+        self.label = label
         self.initials = initials
+        self.compact = False
         self.setCursor(Qt.PointingHandCursor)
         self.setCheckable(True)
+        self.setToolTip(label)
         self.setIconSize(QSize(30, 30))
         self.setMinimumHeight(46)
         self.set_active(active)
 
     def set_active(self, active: bool):
         self.setChecked(active)
+        self.setText("" if self.compact else self.label)
         self.setIcon(make_icon(self.initials, "#14b8a6" if active else "#344054", 30, 7))
         self.setObjectName("navActive" if active else "navItem")
         self.style().unpolish(self)
         self.style().polish(self)
+
+    def set_compact(self, compact: bool):
+        self.compact = compact
+        self.setText("" if compact else self.label)
+        self.setToolTip(self.label)
+        self.setMinimumWidth(46 if compact else 0)
 
 
 class KpiCard(QFrame):

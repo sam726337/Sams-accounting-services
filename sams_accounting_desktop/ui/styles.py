@@ -26,6 +26,18 @@ QFrame#sidebar {
     background: #0b1220;
 }
 
+QPushButton#hamburgerButton {
+    background: #ffffff;
+    border: 1px solid rgba(15, 118, 110, 0.22);
+    border-radius: 8px;
+    padding: 0;
+}
+
+QPushButton#hamburgerButton:hover {
+    background: #effaf8;
+    border-color: rgba(15, 118, 110, 0.45);
+}
+
 QLabel#brandTitle {
     color: #ffffff;
     font-size: 15px;

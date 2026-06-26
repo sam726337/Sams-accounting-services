@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -13,7 +14,7 @@ from PySide6.QtWidgets import (
 from sams_accounting_desktop.config import APP_NAME, APP_VERSION
 from sams_accounting_desktop.data import MODULES
 from sams_accounting_desktop.ui.components import ActivityTable, AppButton, InsightCard, KpiCard, ModuleCard, NavItem, StatusChip
-from sams_accounting_desktop.ui.icons import make_icon
+from sams_accounting_desktop.ui.icons import make_icon, make_menu_icon
 from sams_accounting_desktop.ui.purchase_reco_panel import PurchaseRecoPanel
 from sams_accounting_desktop.ui.styles import STYLESHEET
 from sams_accounting_desktop.ui.tally_panel import TallyConnectorPanel
@@ -27,19 +28,23 @@ class DashboardWindow(QMainWindow):
         self.setMinimumSize(1180, 740)
         self.resize(1320, 820)
         self.nav_buttons: dict[str, NavItem] = {}
+        self.sidebar_collapsed = False
 
         shell = QWidget()
+        self.shell = shell
         shell.setObjectName("shell")
         root = QHBoxLayout(shell)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        root.addWidget(self.sidebar())
+        self.sidebar_widget = self.sidebar()
+        root.addWidget(self.sidebar_widget)
         self.workspace_scroll = self.workspace()
         root.addWidget(self.workspace_scroll, 1)
 
         self.setCentralWidget(shell)
         self.apply_styles()
+        self.create_floating_nav_button()
 
     def sidebar(self) -> QWidget:
         sidebar = QFrame()
@@ -47,7 +52,8 @@ class DashboardWindow(QMainWindow):
         sidebar.setFixedWidth(272)
 
         layout = QVBoxLayout(sidebar)
-        layout.setContentsMargins(16, 24, 16, 18)
+        self.sidebar_layout = layout
+        layout.setContentsMargins(16, 78, 16, 18)
         layout.setSpacing(8)
 
         brand = QHBoxLayout()
@@ -56,7 +62,9 @@ class DashboardWindow(QMainWindow):
         logo.setPixmap(make_icon("SA", "#14b8a6", 44, 10).pixmap(44, 44))
         brand.addWidget(logo)
 
-        copy = QVBoxLayout()
+        brand_copy = QWidget()
+        copy = QVBoxLayout(brand_copy)
+        copy.setContentsMargins(0, 0, 0, 0)
         copy.setSpacing(2)
         name = QLabel("Sam's Accounting")
         name.setObjectName("brandTitle")
@@ -64,7 +72,8 @@ class DashboardWindow(QMainWindow):
         detail.setObjectName("brandDetail")
         copy.addWidget(name)
         copy.addWidget(detail)
-        brand.addLayout(copy)
+        self.brand_copy_widget = brand_copy
+        brand.addWidget(brand_copy)
         layout.addLayout(brand)
         layout.addSpacing(18)
 
@@ -87,6 +96,7 @@ class DashboardWindow(QMainWindow):
         layout.addStretch()
 
         user = QFrame()
+        self.user_card = user
         user.setObjectName("userCard")
         user_layout = QVBoxLayout(user)
         user_layout.setContentsMargins(14, 13, 14, 13)
@@ -100,6 +110,41 @@ class DashboardWindow(QMainWindow):
         layout.addWidget(user)
 
         return sidebar
+
+    def create_floating_nav_button(self):
+        self.floating_nav_button = QPushButton(self.shell)
+        self.floating_nav_button.setObjectName("hamburgerButton")
+        self.floating_nav_button.setIcon(make_menu_icon(28, "#0f766e"))
+        self.floating_nav_button.setFixedSize(46, 46)
+        self.floating_nav_button.setToolTip("Collapse navigation")
+        self.floating_nav_button.clicked.connect(self.toggle_sidebar)
+        self.update_floating_nav_position()
+
+    def toggle_sidebar(self):
+        self.sidebar_collapsed = not self.sidebar_collapsed
+        self.apply_sidebar_state()
+
+    def apply_sidebar_state(self):
+        width = 84 if self.sidebar_collapsed else 272
+        self.sidebar_widget.setFixedWidth(width)
+        self.sidebar_layout.setContentsMargins(12 if self.sidebar_collapsed else 16, 78, 12 if self.sidebar_collapsed else 16, 18)
+        self.brand_copy_widget.setVisible(not self.sidebar_collapsed)
+        self.user_card.setVisible(not self.sidebar_collapsed)
+        self.floating_nav_button.setToolTip("Expand navigation" if self.sidebar_collapsed else "Collapse navigation")
+        for button in self.nav_buttons.values():
+            button.set_compact(self.sidebar_collapsed)
+            button.set_active(button.isChecked())
+        self.update_floating_nav_position()
+
+    def update_floating_nav_position(self):
+        if not hasattr(self, "floating_nav_button"):
+            return
+        self.floating_nav_button.move(18, 18)
+        self.floating_nav_button.raise_()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_floating_nav_position()
 
     def workspace(self) -> QWidget:
         scroll = QScrollArea()
