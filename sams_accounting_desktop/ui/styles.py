@@ -137,6 +137,11 @@ QLabel#startupBody {
     font-size: 13px;
 }
 
+QLabel#startupMeta {
+    color: #667085;
+    font-size: 11px;
+}
+
 QLabel#startupBodyLight {
     color: #d0d5dd;
     font-size: 14px;

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -11,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from sams_accounting_desktop.config import APP_NAME, APP_VERSION
+from sams_accounting_desktop.services.update_checker import UpdateInfo
 from sams_accounting_desktop.state import start_local_trial, verify_license_details
 from sams_accounting_desktop.ui.components import AppButton, StatusChip
 from sams_accounting_desktop.ui.icons import make_icon
@@ -161,3 +163,76 @@ class LicenseWindow(QWidget):
         self.message.set_status("ok" if ok else "error", message)
         if ok:
             self.accepted.emit()
+
+
+class UpdatePrompt(QWidget):
+    accepted = Signal()
+
+    def __init__(self, info: UpdateInfo, current_version: str):
+        super().__init__()
+        self.info = info
+        self.setWindowTitle(f"{APP_NAME} Update")
+        self.setObjectName("startupWindow")
+        self.setWindowIcon(make_icon("SA", "#0f766e", 64))
+        self.setMinimumSize(720, 460)
+        self.setStyleSheet(STYLESHEET)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(28, 28, 28, 28)
+        layout.setSpacing(18)
+
+        intro = QFrame()
+        intro.setObjectName("startupHero")
+        intro_layout = QVBoxLayout(intro)
+        intro_layout.setContentsMargins(26, 26, 26, 26)
+        intro_layout.setSpacing(14)
+        logo = QLabel()
+        logo.setPixmap(make_icon("UP", "#14b8a6", 64, 14).pixmap(64, 64))
+        intro_layout.addWidget(logo)
+        title = QLabel("Update available")
+        title.setObjectName("startupTitleLight")
+        intro_layout.addWidget(title)
+        status = StatusChip("Mandatory update" if info.mandatory else "Optional update", "warning" if info.mandatory else "info")
+        intro_layout.addWidget(status)
+        intro_layout.addStretch()
+        layout.addWidget(intro, 1)
+
+        card = QFrame()
+        card.setObjectName("startupCard")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(24, 24, 24, 24)
+        card_layout.setSpacing(12)
+
+        heading = QLabel(f"{current_version} -> {info.latest_version}")
+        heading.setObjectName("pageTitle")
+        card_layout.addWidget(heading)
+
+        notes = QLabel(info.release_notes or "New desktop update available.")
+        notes.setObjectName("startupBody")
+        notes.setWordWrap(True)
+        card_layout.addWidget(notes)
+
+        source = QLabel(f"Manifest: {info.source_url}")
+        source.setObjectName("startupMeta")
+        source.setWordWrap(True)
+        card_layout.addWidget(source)
+
+        download = AppButton("Download Installer", "primary", "DL", "#0f766e")
+        download.clicked.connect(self.open_download)
+        card_layout.addWidget(download)
+
+        if not info.mandatory:
+            later = AppButton("Continue This Version", "secondary", "GO", "#2563eb")
+            later.clicked.connect(self.accepted.emit)
+            card_layout.addWidget(later)
+        else:
+            locked = QLabel("Mandatory update hai. Installer download karke latest version install karein.")
+            locked.setObjectName("startupBody")
+            locked.setWordWrap(True)
+            card_layout.addWidget(locked)
+
+        card_layout.addStretch()
+        layout.addWidget(card, 2)
+
+    def open_download(self):
+        QDesktopServices.openUrl(QUrl(self.info.download_url))
