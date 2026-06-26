@@ -16,6 +16,7 @@ from sams_accounting_desktop.data import MODULES
 from sams_accounting_desktop.ui.components import ActivityTable, AppButton, InsightCard, KpiCard, ModuleCard, NavItem, StatusChip
 from sams_accounting_desktop.ui.icons import logo_icon, logo_pixmap, make_menu_icon
 from sams_accounting_desktop.ui.purchase_reco_panel import PurchaseRecoPanel
+from sams_accounting_desktop.ui.sales_panel import SalesChoicePanel
 from sams_accounting_desktop.ui.styles import STYLESHEET
 from sams_accounting_desktop.ui.tally_panel import TallyConnectorPanel
 
@@ -247,7 +248,9 @@ class DashboardWindow(QMainWindow):
         purchase_button = AppButton("Run Purchase Reco", "secondary", "PR", "#15803d")
         purchase_button.clicked.connect(lambda: self.open_view("Purchase Reco"))
         action_stack.addWidget(purchase_button)
-        action_stack.addWidget(AppButton("Open Sales Generator", "secondary", "SA", "#be123c"))
+        sales_button = AppButton("Open Sales Generator", "secondary", "SA", "#be123c")
+        sales_button.clicked.connect(lambda: self.open_view("Sales"))
+        action_stack.addWidget(sales_button)
         layout.addLayout(action_stack)
 
         return hero
@@ -280,6 +283,9 @@ class DashboardWindow(QMainWindow):
             return
         if module_name == "Tally":
             self.open_view("Tally")
+            return
+        if module_name == "Sales":
+            self.open_view("Sales")
 
     def open_view(self, view_name: str):
         if view_name == "Purchase Reco":
@@ -289,6 +295,10 @@ class DashboardWindow(QMainWindow):
         if view_name == "Tally":
             self.set_nav_active("Tally")
             self.workspace_scroll.setWidget(self.tool_page("Tally Connector", TallyConnectorPanel()))
+            return
+        if view_name == "Sales":
+            self.set_nav_active("Sales")
+            self.workspace_scroll.setWidget(SalesChoicePanel())
             return
         if view_name == "Dashboard":
             self.set_nav_active("Dashboard")

@@ -94,10 +94,15 @@ QFrame#recoPanel,
 QFrame#insightCard,
 QFrame#stepperPanel,
 QFrame#detailPanel,
+QFrame#choiceCard,
 QFrame#startupCard {
     background: #ffffff;
     border: 1px solid #d9e0ea;
     border-radius: 8px;
+}
+
+QFrame#choiceCard {
+    background: #fbfdff;
 }
 
 QFrame#startupHero {
@@ -191,6 +196,17 @@ QLabel#cardTitle {
     color: #101828;
     font-size: 16px;
     font-weight: 700;
+}
+
+QLabel#choiceTitle {
+    color: #101828;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+QLabel#choiceBody {
+    color: #667085;
+    font-size: 14px;
 }
 
 QLabel#sectionTitle {
