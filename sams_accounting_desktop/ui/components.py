@@ -18,11 +18,14 @@ from sams_accounting_desktop.ui.icons import make_icon
 
 
 class AppButton(QPushButton):
-    def __init__(self, text: str, variant: str = "secondary"):
+    def __init__(self, text: str, variant: str = "secondary", icon_text: str = "", icon_color: str = "#0f766e"):
         super().__init__(text)
         self.setCursor(Qt.PointingHandCursor)
         self.setObjectName(f"{variant}Button")
         self.setMinimumHeight(38)
+        if icon_text:
+            self.setIcon(make_icon(icon_text, icon_color, 24, 6))
+            self.setIconSize(QSize(24, 24))
 
 
 class NavItem(QPushButton):
@@ -71,6 +74,103 @@ class KpiCard(QFrame):
         hint.setObjectName("smallText")
         hint.setWordWrap(True)
         layout.addWidget(hint)
+
+
+class StatusChip(QLabel):
+    STATUS_NAMES = {
+        "ok": "statusOk",
+        "warning": "statusWarning",
+        "error": "statusError",
+        "idle": "statusIdle",
+        "info": "statusInfo",
+    }
+
+    def __init__(self, text: str, status: str = "idle"):
+        super().__init__(text)
+        self.setAlignment(Qt.AlignCenter)
+        self.set_status(status, text)
+
+    def set_status(self, status: str, text: str | None = None):
+        if text is not None:
+            self.setText(text)
+        self.setObjectName(self.STATUS_NAMES.get(status, "statusIdle"))
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+
+class InsightCard(QFrame):
+    def __init__(self, title: str, value: str, detail: str, accent: str, initials: str):
+        super().__init__()
+        self.setObjectName("insightCard")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(14, 13, 14, 13)
+        layout.setSpacing(12)
+
+        icon = QLabel()
+        icon.setPixmap(make_icon(initials, accent, 36, 8).pixmap(36, 36))
+        layout.addWidget(icon)
+
+        copy = QVBoxLayout()
+        copy.setSpacing(2)
+        label = QLabel(title)
+        label.setObjectName("mutedLabel")
+        number = QLabel(value)
+        number.setObjectName("insightValue")
+        helper = QLabel(detail)
+        helper.setObjectName("smallText")
+        helper.setWordWrap(True)
+        copy.addWidget(label)
+        copy.addWidget(number)
+        copy.addWidget(helper)
+        layout.addLayout(copy, 1)
+
+
+class WorkflowStepper(QFrame):
+    def __init__(self, steps: list[str]):
+        super().__init__()
+        self.setObjectName("stepperPanel")
+        self.steps = steps
+        self.step_frames: list[QFrame] = []
+        self.step_labels: list[QLabel] = []
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+
+        for index, step in enumerate(steps):
+            frame = QFrame()
+            frame.setObjectName("stepIdle")
+            frame_layout = QHBoxLayout(frame)
+            frame_layout.setContentsMargins(10, 8, 10, 8)
+            frame_layout.setSpacing(8)
+
+            number = QLabel(str(index + 1))
+            number.setObjectName("stepNumber")
+            number.setAlignment(Qt.AlignCenter)
+            title = QLabel(step)
+            title.setObjectName("stepLabel")
+            title.setWordWrap(True)
+            frame_layout.addWidget(number)
+            frame_layout.addWidget(title, 1)
+            layout.addWidget(frame, 1)
+
+            self.step_frames.append(frame)
+            self.step_labels.append(title)
+
+        self.set_active(0)
+
+    def set_active(self, active_index: int):
+        for index, frame in enumerate(self.step_frames):
+            if index < active_index:
+                name = "stepDone"
+            elif index == active_index:
+                name = "stepActive"
+            else:
+                name = "stepIdle"
+            frame.setObjectName(name)
+            frame.style().unpolish(frame)
+            frame.style().polish(frame)
 
 
 class ModuleCard(QFrame):

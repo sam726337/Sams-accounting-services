@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 
 from sams_accounting_desktop.config import APP_NAME, APP_VERSION
 from sams_accounting_desktop.data import MODULES
-from sams_accounting_desktop.ui.components import ActivityTable, AppButton, KpiCard, ModuleCard, NavItem
+from sams_accounting_desktop.ui.components import ActivityTable, AppButton, InsightCard, KpiCard, ModuleCard, NavItem, StatusChip
 from sams_accounting_desktop.ui.icons import make_icon
 from sams_accounting_desktop.ui.purchase_reco_panel import PurchaseRecoPanel
 from sams_accounting_desktop.ui.styles import STYLESHEET
@@ -93,7 +93,7 @@ class DashboardWindow(QMainWindow):
         user_layout.setSpacing(4)
         account = QLabel("sameer mansuri")
         account.setObjectName("userName")
-        plan = QLabel("Verified subscription")
+        plan = QLabel("License verified")
         plan.setObjectName("userPlan")
         user_layout.addWidget(account)
         user_layout.addWidget(plan)
@@ -117,6 +117,7 @@ class DashboardWindow(QMainWindow):
         layout.setSpacing(18)
 
         layout.addWidget(self.topbar())
+        layout.addLayout(self.health_strip())
         layout.addWidget(self.hero())
         layout.addLayout(self.kpis())
 
@@ -154,10 +155,22 @@ class DashboardWindow(QMainWindow):
         search.setPlaceholderText("Search module or workflow")
         search.setFixedWidth(260)
         layout.addWidget(search)
-        layout.addWidget(AppButton("Check Tally", "secondary"))
-        layout.addWidget(AppButton("New Voucher", "primary"))
+        layout.addWidget(StatusChip("Live workspace", "ok"))
+        check_tally = AppButton("Check Tally", "secondary", "TA", "#0f766e")
+        check_tally.clicked.connect(lambda: self.open_view("Tally"))
+        layout.addWidget(check_tally)
+        layout.addWidget(AppButton("New Voucher", "primary", "VE", "#115e59"))
 
         return topbar
+
+    def health_strip(self) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setSpacing(14)
+        row.addWidget(InsightCard("Tally gateway", "Localhost:9000", "Ready for company sync", "#0f766e", "TG"))
+        row.addWidget(InsightCard("License", "Verified", "Desktop access active", "#2563eb", "LC"))
+        row.addWidget(InsightCard("Release", APP_VERSION, "Update manifest enabled", "#7c3aed", "UP"))
+        row.addWidget(InsightCard("AI credit", "Rs 500.0000", "Available for assisted workflows", "#b54708", "AI"))
+        return row
 
     def hero(self) -> QWidget:
         hero = QFrame()
@@ -185,11 +198,11 @@ class DashboardWindow(QMainWindow):
 
         action_stack = QVBoxLayout()
         action_stack.setSpacing(9)
-        action_stack.addWidget(AppButton("Start Bank Parsing", "primary"))
-        purchase_button = AppButton("Run Purchase Reco", "secondary")
+        action_stack.addWidget(AppButton("Start Bank Parsing", "primary", "BP", "#0f766e"))
+        purchase_button = AppButton("Run Purchase Reco", "secondary", "PR", "#15803d")
         purchase_button.clicked.connect(lambda: self.open_view("Purchase Reco"))
         action_stack.addWidget(purchase_button)
-        action_stack.addWidget(AppButton("Open Sales Generator", "secondary"))
+        action_stack.addWidget(AppButton("Open Sales Generator", "secondary", "SA", "#be123c"))
         layout.addLayout(action_stack)
 
         return hero
@@ -197,10 +210,10 @@ class DashboardWindow(QMainWindow):
     def kpis(self) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setSpacing(14)
-        row.addWidget(KpiCard("Tally status", "Connected", "Localhost company data ready", "#0f766e"))
+        row.addWidget(KpiCard("Tally status", "Ready", "Localhost company data ready", "#0f766e"))
         row.addWidget(KpiCard("Pending imports", "0", "No files waiting in queue", "#2563eb"))
-        row.addWidget(KpiCard("Reco mode", "All-quarter", "Multiple GST Excel files supported", "#15803d"))
-        row.addWidget(KpiCard("Backup", "Optional", "CSV backup available before posting", "#475467"))
+        row.addWidget(KpiCard("Reco mode", "Multi-file", "Multiple GST Excel files supported", "#15803d"))
+        row.addWidget(KpiCard("Review queue", "0", "Probable matches waiting", "#b54708"))
         return row
 
     def module_grid(self) -> QGridLayout:
@@ -219,15 +232,50 @@ class DashboardWindow(QMainWindow):
     def open_module(self, module_name: str):
         if module_name == "Purchase Reco":
             self.open_view("Purchase Reco")
+            return
+        if module_name == "Tally":
+            self.open_view("Tally")
 
     def open_view(self, view_name: str):
         if view_name == "Purchase Reco":
             self.set_nav_active("Purchase Reco")
             self.workspace_scroll.setWidget(PurchaseRecoPanel())
             return
+        if view_name == "Tally":
+            self.set_nav_active("Tally")
+            self.workspace_scroll.setWidget(self.tool_page("Tally Connector", TallyConnectorPanel()))
+            return
         if view_name == "Dashboard":
             self.set_nav_active("Dashboard")
             self.workspace_scroll.setWidget(self.dashboard_page())
+
+    def tool_page(self, title: str, widget: QWidget) -> QWidget:
+        page = QWidget()
+        page.setObjectName("workspace")
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(28, 22, 28, 26)
+        layout.setSpacing(18)
+
+        header = QFrame()
+        header.setObjectName("topbar")
+        header.setMinimumHeight(76)
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(22, 12, 22, 12)
+        title_stack = QVBoxLayout()
+        heading = QLabel(title)
+        heading.setObjectName("pageTitle")
+        subheading = QLabel("Local desktop workflow")
+        subheading.setObjectName("pageSubtitle")
+        title_stack.addWidget(heading)
+        title_stack.addWidget(subheading)
+        header_layout.addLayout(title_stack)
+        header_layout.addStretch()
+        header_layout.addWidget(StatusChip("Ready", "info"))
+
+        layout.addWidget(header)
+        layout.addWidget(widget)
+        layout.addStretch()
+        return page
 
     def set_nav_active(self, active_name: str):
         for name, button in self.nav_buttons.items():

@@ -6,6 +6,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QFileDialog,
     QFrame,
     QGridLayout,
@@ -28,7 +29,7 @@ from sams_accounting_desktop.services.purchase_reco_service import (
     export_purchase_reco_excel,
     export_purchase_reco_pdf,
 )
-from sams_accounting_desktop.ui.components import AppButton, KpiCard
+from sams_accounting_desktop.ui.components import AppButton, KpiCard, StatusChip, WorkflowStepper
 from sams_accounting_desktop.workers.purchase_reco_worker import PurchaseRecoWorker
 
 
@@ -39,12 +40,18 @@ class PurchaseRecoPanel(QWidget):
         self.selected_files: list[str] = []
         self.worker: PurchaseRecoWorker | None = None
         self.current_run: PurchaseRecoRun | None = None
+        self.current_filter = "all"
+        self.current_results: list[dict] = []
+        self.visible_results: list[dict] = []
+        self.filter_buttons: dict[str, AppButton] = {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 22, 28, 26)
         layout.setSpacing(18)
 
         layout.addWidget(self.header())
+        self.stepper = WorkflowStepper(["Upload GST", "Fetch Tally", "Review", "Export"])
+        layout.addWidget(self.stepper)
         layout.addLayout(self.summary_cards())
         layout.addWidget(self.controls())
         layout.addWidget(self.results_panel())
@@ -122,15 +129,15 @@ class PurchaseRecoPanel(QWidget):
 
         button_row = QHBoxLayout()
         button_row.setSpacing(8)
-        self.select_button = AppButton("Select GST Excel", "secondary")
+        self.select_button = AppButton("Select GST Excel", "secondary", "XL", "#2563eb")
         self.select_button.clicked.connect(self.select_files)
-        self.clear_button = AppButton("Clear", "secondary")
+        self.clear_button = AppButton("Clear", "secondary", "CL", "#475467")
         self.clear_button.clicked.connect(self.clear_files)
-        self.run_button = AppButton("Run Reco", "primary")
+        self.run_button = AppButton("Run Reco", "primary", "GO", "#0f766e")
         self.run_button.clicked.connect(self.run_reco)
-        self.export_excel_button = AppButton("Export Excel", "secondary")
+        self.export_excel_button = AppButton("Export Excel", "secondary", "EX", "#15803d")
         self.export_excel_button.clicked.connect(self.export_excel)
-        self.export_pdf_button = AppButton("Export PDF", "secondary")
+        self.export_pdf_button = AppButton("Export PDF", "secondary", "PF", "#b54708")
         self.export_pdf_button.clicked.connect(self.export_pdf)
         button_row.addWidget(self.select_button)
         button_row.addWidget(self.clear_button)
@@ -144,6 +151,11 @@ class PurchaseRecoPanel(QWidget):
         self.file_list.setObjectName("fileList")
         self.file_list.setMinimumHeight(80)
         layout.addWidget(self.file_list)
+
+        self.notice_label = QLabel("Select GST purchase Excel files to begin.")
+        self.notice_label.setObjectName("toastInfo")
+        self.notice_label.setWordWrap(True)
+        layout.addWidget(self.notice_label)
 
         self.progress = QProgressBar()
         self.progress.setObjectName("healthProgress")
@@ -162,9 +174,24 @@ class PurchaseRecoPanel(QWidget):
         layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(12)
 
+        header = QHBoxLayout()
         title = QLabel("Reco Results")
         title.setObjectName("sectionTitle")
-        layout.addWidget(title)
+        header.addWidget(title)
+        header.addStretch()
+        for label, status in [
+            ("All", "all"),
+            ("Matched", "matched"),
+            ("Probable", "probable"),
+            ("Mismatch", "mismatch"),
+            ("Missing", "missing"),
+        ]:
+            button = AppButton(label, "secondary")
+            button.clicked.connect(lambda _checked=False, value=status: self.set_filter(value))
+            self.filter_buttons[status] = button
+            header.addWidget(button)
+        layout.addLayout(header)
+        self.update_filter_buttons()
 
         self.results_table = QTableWidget(0, 10)
         self.results_table.setObjectName("resultTable")
@@ -184,13 +211,67 @@ class PurchaseRecoPanel(QWidget):
         )
         self.results_table.verticalHeader().setVisible(False)
         self.results_table.setShowGrid(False)
-        self.results_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
+        self.results_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.results_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.results_table.setFocusPolicy(Qt.NoFocus)
+        self.results_table.cellClicked.connect(self.handle_result_clicked)
         for column in range(9):
             self.results_table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
         self.results_table.horizontalHeader().setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
         self.results_table.setMinimumHeight(360)
-        layout.addWidget(self.results_table)
+
+        body = QHBoxLayout()
+        body.setSpacing(14)
+        body.addWidget(self.results_table, 3)
+        body.addWidget(self.detail_panel(), 1)
+        layout.addLayout(body)
+        return panel
+
+    def detail_panel(self) -> QWidget:
+        panel = QFrame()
+        panel.setObjectName("detailPanel")
+        panel.setMinimumWidth(300)
+
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
+
+        title = QLabel("Match Detail")
+        title.setObjectName("detailTitle")
+        layout.addWidget(title)
+
+        self.detail_status = StatusChip("No selection", "info")
+        layout.addWidget(self.detail_status)
+
+        self.detail_supplier = QLabel("-")
+        self.detail_supplier.setObjectName("detailValue")
+        self.detail_supplier.setWordWrap(True)
+        layout.addWidget(self.detail_supplier)
+
+        self.detail_invoice = QLabel("-")
+        self.detail_invoice.setObjectName("detailValue")
+        self.detail_invoice.setWordWrap(True)
+        layout.addWidget(self.detail_invoice)
+
+        self.detail_amount = QLabel("-")
+        self.detail_amount.setObjectName("detailValue")
+        self.detail_amount.setWordWrap(True)
+        layout.addWidget(self.detail_amount)
+
+        self.detail_score = QLabel("-")
+        self.detail_score.setObjectName("detailValue")
+        self.detail_score.setWordWrap(True)
+        layout.addWidget(self.detail_score)
+
+        reasons_title = QLabel("Reasons")
+        reasons_title.setObjectName("mutedLabel")
+        layout.addWidget(reasons_title)
+
+        self.detail_reasons = QLabel("Select any row to inspect the match.")
+        self.detail_reasons.setObjectName("smallText")
+        self.detail_reasons.setWordWrap(True)
+        layout.addWidget(self.detail_reasons)
+        layout.addStretch()
         return panel
 
     def select_files(self):
@@ -205,15 +286,24 @@ class PurchaseRecoPanel(QWidget):
         self.selected_files = files
         self.file_list.clear()
         self.file_list.addItems([Path(path).name for path in files])
+        self.stepper.set_active(1)
+        self.set_notice(f"{len(files)} GST Excel file selected. Ready to fetch Tally purchases.")
 
     def clear_files(self):
         self.selected_files = []
         self.file_list.clear()
         self.current_run = None
+        self.current_results = []
+        self.visible_results = []
+        self.current_filter = "all"
+        self.update_filter_buttons()
         self.results_table.setRowCount(0)
+        self.update_detail(None)
         self.update_summary({})
         self.set_export_enabled(False)
         self.set_status("Ready", "connectorStatusIdle")
+        self.stepper.set_active(0)
+        self.set_notice("Select GST purchase Excel files to begin.")
 
     def run_reco(self):
         if not self.selected_files:
@@ -229,6 +319,8 @@ class PurchaseRecoPanel(QWidget):
 
         self.set_busy(True)
         self.set_status("Working...", "connectorStatusIdle")
+        self.stepper.set_active(2)
+        self.set_notice("Fetching Tally purchases and preparing reconciliation.")
         self.results_table.setRowCount(0)
         self.worker = PurchaseRecoWorker(
             self.selected_files,
@@ -249,6 +341,8 @@ class PurchaseRecoPanel(QWidget):
         self.set_busy(False)
         self.set_status("Completed" if ok else "Failed", "connectorStatusOk" if ok else "connectorStatusError")
         if not ok or not isinstance(payload, PurchaseRecoRun):
+            self.stepper.set_active(1 if self.selected_files else 0)
+            self.set_notice(message)
             QMessageBox.warning(self, "Purchase Reco", message)
             return
 
@@ -256,6 +350,8 @@ class PurchaseRecoPanel(QWidget):
         self.update_summary(payload.summary)
         self.populate_results(payload.results)
         self.set_export_enabled(True)
+        self.stepper.set_active(3)
+        self.set_notice(message + " Review results or export the report.")
 
     def update_summary(self, summary: dict):
         self.update_card(self.gst_card, str(summary.get("gst_count", 0)))
@@ -268,9 +364,29 @@ class PurchaseRecoPanel(QWidget):
         )
         self.update_card(self.review_card, str(review_count))
 
-    def populate_results(self, results: list[dict]):
-        self.results_table.setRowCount(len(results))
-        for row_index, result in enumerate(results):
+    def set_filter(self, status: str):
+        self.current_filter = status
+        self.update_filter_buttons()
+        self.populate_results()
+
+    def update_filter_buttons(self):
+        for status, button in self.filter_buttons.items():
+            button.setObjectName("filterActive" if status == self.current_filter else "filterButton")
+            button.style().unpolish(button)
+            button.style().polish(button)
+
+    def filtered_results(self) -> list[dict]:
+        if self.current_filter == "all":
+            return list(self.current_results)
+        return [result for result in self.current_results if result.get("status") == self.current_filter]
+
+    def populate_results(self, results: list[dict] | None = None):
+        if results is not None:
+            self.current_results = list(results)
+        self.visible_results = self.filtered_results()
+        self.results_table.setRowCount(len(self.visible_results))
+        self.update_detail(None)
+        for row_index, result in enumerate(self.visible_results):
             gst = result.get("gst")
             tally = result.get("tally")
             values = [
@@ -292,6 +408,54 @@ class PurchaseRecoPanel(QWidget):
                     item.setForeground(self.status_color(value))
                 self.results_table.setItem(row_index, column, item)
 
+        if self.visible_results:
+            self.results_table.selectRow(0)
+            self.update_detail(self.visible_results[0])
+
+    def handle_result_clicked(self, row: int, _column: int):
+        if 0 <= row < len(self.visible_results):
+            self.update_detail(self.visible_results[row])
+
+    def update_detail(self, result: dict | None):
+        if result is None:
+            self.detail_status.set_status("info", "No selection")
+            self.detail_supplier.setText("-")
+            self.detail_invoice.setText("-")
+            self.detail_amount.setText("-")
+            self.detail_score.setText("-")
+            self.detail_reasons.setText("Select any row to inspect the match.")
+            return
+
+        gst = result.get("gst")
+        tally = result.get("tally")
+        status = result.get("status", "")
+        chip_status = {
+            "matched": "ok",
+            "probable": "warning",
+            "mismatch": "error",
+            "missing": "error",
+        }.get(status, "info")
+        self.detail_status.set_status(chip_status, status.title() if status else "Review")
+        self.detail_supplier.setText(
+            f"Supplier: {getattr(gst, 'supplier_name', '') or '-'}\nGSTIN: {getattr(gst, 'supplier_gstin', '') or '-'}"
+            if gst is not None
+            else "Supplier: -"
+        )
+        self.detail_invoice.setText(
+            "Invoice: "
+            + (getattr(gst, "invoice_number", "") if gst is not None else "-")
+            + "\nTally voucher: "
+            + (getattr(tally, "voucher_number", "") if tally is not None else "-")
+        )
+        self.detail_amount.setText(
+            "GST amount: "
+            + self.format_amount(getattr(gst, "invoice_value", None) if gst is not None else None)
+            + "\nTally amount: "
+            + self.format_amount(getattr(tally, "amount", None) if tally is not None else None)
+        )
+        self.detail_score.setText(f"Confidence score: {result.get('score', '')}")
+        self.detail_reasons.setText("\n".join(result.get("reasons", []) or ["No reasons available"]))
+
     def export_excel(self):
         if self.current_run is None:
             return
@@ -304,6 +468,7 @@ class PurchaseRecoPanel(QWidget):
         if file_path:
             export_purchase_reco_excel(self.current_run, file_path)
             self.set_status("Excel exported", "connectorStatusOk")
+            self.set_notice(f"Excel report exported: {Path(file_path).name}")
 
     def export_pdf(self):
         if self.current_run is None:
@@ -317,6 +482,7 @@ class PurchaseRecoPanel(QWidget):
         if file_path:
             export_purchase_reco_pdf(self.current_run, file_path)
             self.set_status("PDF exported", "connectorStatusOk")
+            self.set_notice(f"PDF report exported: {Path(file_path).name}")
 
     def set_busy(self, busy: bool):
         self.select_button.setEnabled(not busy)
@@ -338,6 +504,9 @@ class PurchaseRecoPanel(QWidget):
         self.status_label.setObjectName(object_name)
         self.status_label.style().unpolish(self.status_label)
         self.status_label.style().polish(self.status_label)
+
+    def set_notice(self, text: str):
+        self.notice_label.setText(text)
 
     @staticmethod
     def update_card(card: KpiCard, value: str):

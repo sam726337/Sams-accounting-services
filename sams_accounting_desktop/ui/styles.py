@@ -1,17 +1,29 @@
+THEME = {
+    "bg": "#f4f7fb",
+    "surface": "#ffffff",
+    "surface_soft": "#f8fafc",
+    "line": "#d9e2ec",
+    "text": "#101828",
+    "muted": "#667085",
+    "primary": "#0f766e",
+    "primary_dark": "#115e59",
+    "sidebar": "#0b1220",
+}
+
 STYLESHEET = """
 QWidget#shell,
 QWidget#workspace {
-    background: #eef2f6;
+    background: #f4f7fb;
     color: #101828;
     font-family: Segoe UI;
 }
 
 QScrollArea#workspaceScroll {
-    background: #eef2f6;
+    background: #f4f7fb;
 }
 
 QFrame#sidebar {
-    background: #101828;
+    background: #0b1220;
 }
 
 QLabel#brandTitle {
@@ -38,18 +50,18 @@ QPushButton#navActive {
 }
 
 QPushButton#navItem:hover {
-    background: #1d2939;
+    background: #162033;
     color: #ffffff;
 }
 
 QPushButton#navActive {
-    background: #184e4a;
+    background: #123f3d;
     color: #ffffff;
     font-weight: 700;
 }
 
 QFrame#userCard {
-    background: #172033;
+    background: #111c2f;
     border-radius: 8px;
 }
 
@@ -65,10 +77,21 @@ QFrame#kpiCard,
 QFrame#moduleCard,
 QFrame#sidePanel,
 QFrame#activityPanel,
-QFrame#recoPanel {
+QFrame#recoPanel,
+QFrame#insightCard,
+QFrame#stepperPanel,
+QFrame#detailPanel {
     background: #ffffff;
     border: 1px solid #d9e0ea;
     border-radius: 8px;
+}
+
+QFrame#hero {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ffffff, stop:1 #effaf8);
+}
+
+QFrame#insightCard {
+    background: #fbfdff;
 }
 
 QLabel#pageTitle {
@@ -111,6 +134,12 @@ QLabel#kpiValue {
     font-weight: 700;
 }
 
+QLabel#insightValue {
+    color: #101828;
+    font-size: 15px;
+    font-weight: 800;
+}
+
 QLabel#cardTitle {
     color: #101828;
     font-size: 16px;
@@ -140,24 +169,38 @@ QLabel#healthValue {
 
 QLabel#connectorStatusIdle,
 QLabel#connectorStatusOk,
-QLabel#connectorStatusError {
+QLabel#connectorStatusError,
+QLabel#statusIdle,
+QLabel#statusOk,
+QLabel#statusWarning,
+QLabel#statusError,
+QLabel#statusInfo {
     border-radius: 10px;
     padding: 8px 10px;
     font-size: 12px;
     font-weight: 700;
 }
 
-QLabel#connectorStatusIdle {
+QLabel#connectorStatusIdle,
+QLabel#statusIdle,
+QLabel#statusInfo {
     background: #f1f5f9;
     color: #475467;
 }
 
-QLabel#connectorStatusOk {
+QLabel#connectorStatusOk,
+QLabel#statusOk {
     background: #ecfdf3;
     color: #067647;
 }
 
-QLabel#connectorStatusError {
+QLabel#statusWarning {
+    background: #fffaeb;
+    color: #b54708;
+}
+
+QLabel#connectorStatusError,
+QLabel#statusError {
     background: #fef3f2;
     color: #b42318;
 }
@@ -179,6 +222,13 @@ QPushButton#primaryButton {
     font-weight: 700;
 }
 
+QPushButton#primaryButton:disabled,
+QPushButton#secondaryButton:disabled {
+    background: #eef2f6;
+    color: #98a2b3;
+    border: 1px solid #d9e0ea;
+}
+
 QPushButton#primaryButton:hover {
     background: #115e59;
 }
@@ -194,6 +244,31 @@ QPushButton#secondaryButton {
 
 QPushButton#secondaryButton:hover {
     background: #edf2f7;
+}
+
+QPushButton#filterButton,
+QPushButton#filterActive {
+    border: 1px solid #d9e0ea;
+    border-radius: 7px;
+    padding: 7px 11px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QPushButton#filterButton {
+    background: #ffffff;
+    color: #475467;
+}
+
+QPushButton#filterButton:hover {
+    background: #f8fafc;
+    color: #101828;
+}
+
+QPushButton#filterActive {
+    background: #e6f6f3;
+    color: #0f766e;
+    border-color: rgba(15, 118, 110, 0.28);
 }
 
 QProgressBar#healthProgress {
@@ -267,6 +342,65 @@ QTableWidget#resultTable {
     gridline-color: transparent;
     selection-background-color: transparent;
     font-size: 12px;
+}
+
+QFrame#stepActive,
+QFrame#stepDone,
+QFrame#stepIdle {
+    border-radius: 7px;
+    border: 1px solid #d9e0ea;
+}
+
+QFrame#stepActive {
+    background: #e6f6f3;
+    border-color: rgba(15, 118, 110, 0.42);
+}
+
+QFrame#stepDone {
+    background: #ecfdf3;
+    border-color: rgba(6, 118, 71, 0.26);
+}
+
+QFrame#stepIdle {
+    background: #f8fafc;
+}
+
+QLabel#stepNumber {
+    min-width: 22px;
+    min-height: 22px;
+    border-radius: 11px;
+    background: #0f766e;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+QLabel#stepLabel {
+    color: #344054;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+QLabel#detailTitle {
+    color: #101828;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+QLabel#detailValue {
+    color: #101828;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QLabel#toastInfo {
+    background: #effaf8;
+    color: #115e59;
+    border: 1px solid rgba(15, 118, 110, 0.18);
+    border-radius: 7px;
+    padding: 9px 11px;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 QHeaderView::section {
