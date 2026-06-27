@@ -95,6 +95,8 @@ QFrame#insightCard,
 QFrame#stepperPanel,
 QFrame#detailPanel,
 QFrame#choiceCard,
+QFrame#formPanel,
+QFrame#previewPanel,
 QFrame#startupCard {
     background: #ffffff;
     border: 1px solid #d9e0ea;
@@ -175,7 +177,8 @@ QLabel#heroTitle {
 }
 
 QLabel#mutedLabel,
-QLabel#stateText {
+QLabel#stateText,
+QLabel#formLabel {
     color: #667085;
     font-size: 11px;
 }
@@ -274,6 +277,21 @@ QLineEdit#searchBox {
     border-radius: 7px;
     padding: 9px 12px;
     color: #101828;
+}
+
+QDateEdit#dateInput,
+QSpinBox#numberInput {
+    background: #f8fafc;
+    border: 1px solid #d9e0ea;
+    border-radius: 7px;
+    padding: 8px 10px;
+    color: #101828;
+}
+
+QDateEdit#dateInput:focus,
+QSpinBox#numberInput:focus,
+QLineEdit#searchBox:focus {
+    border-color: rgba(15, 118, 110, 0.55);
 }
 
 QPushButton#primaryButton {
@@ -405,6 +423,21 @@ QTableWidget#resultTable {
     gridline-color: transparent;
     selection-background-color: transparent;
     font-size: 12px;
+}
+
+QTableWidget#salesTable {
+    border: 1px solid #d9e0ea;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #101828;
+    gridline-color: transparent;
+    selection-background-color: #d9f3ef;
+    selection-color: #101828;
+    font-size: 12px;
+}
+
+QTableWidget#salesTable::item {
+    padding: 7px;
 }
 
 QFrame#stepActive,
