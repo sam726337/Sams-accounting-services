@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "latest_version": "1.0.1",
-  "download_url": "https://github.com/sam726337/Sams-accounting-services/releases/download/v1.0.1/SamsAccountingSetup-1.0.1.exe",
-  "release_notes": "Purchase Reco me multiple GST Excel files ek saath load karke all-quarter reconciliation kar sakte hain. App me future update prompt bhi add hai.",
+  "latest_version": "1.0.2",
+  "download_url": "https://github.com/sam726337/Sams-accounting-services/releases/download/v1.0.2/SamsAccountingSetup-1.0.2.exe",
+  "release_notes": "Fresh desktop build latest source changes ke saath upload hai. Desktop workflows aur package metadata update kiya gaya hai.",
   "mandatory": false
 }
