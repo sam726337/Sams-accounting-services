@@ -190,7 +190,7 @@ class ModuleCard(QFrame):
         super().__init__()
         self.module = module
         self.setObjectName("moduleCard")
-        self.setMinimumHeight(205)
+        self.setMinimumHeight(190)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         layout = QVBoxLayout(self)
@@ -203,8 +203,8 @@ class ModuleCard(QFrame):
         layout.addWidget(accent)
 
         body = QVBoxLayout()
-        body.setContentsMargins(18, 16, 18, 16)
-        body.setSpacing(12)
+        body.setContentsMargins(20, 18, 20, 18)
+        body.setSpacing(14)
 
         header = QHBoxLayout()
         icon = QLabel()
@@ -213,10 +213,7 @@ class ModuleCard(QFrame):
         title_stack.setSpacing(2)
         title = QLabel(module.title)
         title.setObjectName("cardTitle")
-        state = QLabel(module.state)
-        state.setObjectName("stateText")
         title_stack.addWidget(title)
-        title_stack.addWidget(state)
         header.addWidget(icon)
         header.addLayout(title_stack)
         header.addStretch()
@@ -232,14 +229,9 @@ class ModuleCard(QFrame):
         body.addWidget(subtitle)
         body.addStretch()
 
-        actions = QHBoxLayout()
-        actions.setSpacing(8)
         open_button = AppButton("Open", "primary")
         open_button.clicked.connect(lambda: self.open_requested.emit(self.module.title))
-        actions.addWidget(open_button)
-        actions.addWidget(AppButton("History", "secondary"))
-        actions.addStretch()
-        body.addLayout(actions)
+        body.addWidget(open_button)
 
         layout.addLayout(body)
 

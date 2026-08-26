@@ -11,6 +11,22 @@ MODULES = [
         "TA",
     ),
     Module(
+        "Sales",
+        "Random sales invoice preview generate karke direct Tally me create karein.",
+        "Invoice",
+        "Generator",
+        "#be123c",
+        "SA",
+    ),
+    Module(
+        "Purchase Reconciliation",
+        "GST portal purchase Excel ko Tally purchase vouchers ke saath reconcile karein.",
+        "GST",
+        "Multi-file",
+        "#15803d",
+        "PR",
+    ),
+    Module(
         "Excel",
         "Excel bank rows review karein, ledgers fill karein, phir Tally me import karein.",
         "0 files",
@@ -34,36 +50,12 @@ MODULES = [
         "#c2410c",
         "IP",
     ),
-    Module(
-        "Purchase Reco",
-        "GST portal purchase Excel ko Tally purchase vouchers ke saath reconcile karein.",
-        "GST",
-        "Multi-file",
-        "#15803d",
-        "PR",
-    ),
-    Module(
-        "Sales",
-        "Random sales invoice preview generate karke direct Tally me create karein.",
-        "Invoice",
-        "Generator",
-        "#be123c",
-        "SA",
-    ),
-    Module(
-        "Voucher Entry",
-        "Journal, Payment, Receipt, Purchase/Sales ya custom 2-ledger voucher add karein.",
-        "Manual",
-        "Entry",
-        "#334155",
-        "VE",
-    ),
 ]
 
 
 ACTIVITY = [
     Activity("Today", "Tally", "Company and masters sync ready", "Healthy"),
-    Activity("Today", "Purchase Reco", "Multiple GST Excel support enabled", "Ready"),
+    Activity("Today", "Purchase Reconciliation", "Multiple GST Excel support enabled", "Ready"),
     Activity("Today", "Bank PDF", "Payment and Receipt posting workflow available", "Ready"),
     Activity("Today", "Sales", "Invoice preview generator available", "Ready"),
 ]

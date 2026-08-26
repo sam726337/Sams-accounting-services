@@ -12,7 +12,15 @@ from sams_accounting_desktop.services.purchase_reconciliation import (
     parse_date_value,
     parse_decimal_value,
 )
-from sams_accounting_desktop.services.tally_client import clean_text, parse_tally_xml, post_tally_xml, tag_name
+from sams_accounting_desktop.services.tally_client import (
+    TallyImportResult,
+    build_voucher_import_request,
+    clean_text,
+    parse_import_result,
+    parse_tally_xml,
+    post_tally_xml,
+    tag_name,
+)
 
 
 @dataclass
@@ -89,6 +97,122 @@ def fetch_tally_purchase_vouchers(
     if "<LINEERROR>" in response.upper():
         raise RuntimeError("Tally returned an XML line error while fetching purchase vouchers.")
     return parse_tally_purchase_vouchers(response)
+
+
+def update_tally_purchase_supplier_invoice_number(
+    tally_url: str,
+    voucher,
+    *,
+    supplier_invoice_number: str,
+) -> TallyImportResult:
+    invoice_number = clean_text(supplier_invoice_number)
+    if not invoice_number:
+        raise ValueError("Excel invoice number blank hai.")
+
+    voucher_xml = build_purchase_supplier_invoice_update_xml(voucher, invoice_number)
+    import_xml = build_voucher_import_request(voucher_xml=voucher_xml)
+    return parse_import_result(
+        post_tally_xml(
+            tally_url,
+            import_xml,
+            timeout=PURCHASE_RECO_TIMEOUT_SECONDS,
+        )
+    )
+
+
+def build_purchase_supplier_invoice_update_xml(voucher, supplier_invoice_number: str) -> str:
+    raw_xml = getattr(voucher, "raw_xml", "") or ""
+    if not raw_xml:
+        voucher_number = getattr(voucher, "voucher_number", "") or "-"
+        raise ValueError(f"{voucher_number}: Tally voucher raw XML available nahi hai.")
+
+    try:
+        voucher_element = ET.fromstring(raw_xml)
+    except ET.ParseError as exc:
+        voucher_number = getattr(voucher, "voucher_number", "") or "-"
+        raise ValueError(f"{voucher_number}: Tally voucher XML read nahi ho paaya.") from exc
+
+    if tag_name(voucher_element) != "VOUCHER":
+        raise ValueError("Tally purchase voucher XML invalid hai.")
+
+    voucher_element.attrib["ACTION"] = "Alter"
+    voucher_type = clean_text(voucher_element.attrib.get("VCHTYPE")) or clean_text(
+        getattr(voucher, "voucher_type_name", "")
+    )
+    if voucher_type:
+        voucher_element.attrib["VCHTYPE"] = voucher_type
+
+    set_direct_child_text(voucher_element, "REFERENCE", supplier_invoice_number, create=True)
+    set_direct_child_text(voucher_element, "BASICREFERENCE", supplier_invoice_number, create=True)
+    for optional_tag in ("PARTYINVNO", "BILLREF"):
+        set_direct_child_text(voucher_element, optional_tag, supplier_invoice_number, create=False)
+
+    update_purchase_bill_allocation_names(
+        voucher_element,
+        supplier_invoice_number,
+        old_reference=getattr(voucher, "supplier_invoice_number", ""),
+    )
+    return ET.tostring(voucher_element, encoding="unicode")
+
+
+def set_direct_child_text(parent: ET.Element, child_name: str, value: str, *, create: bool) -> bool:
+    child = first_direct_child(parent, child_name)
+    if child is None:
+        if not create:
+            return False
+        child = ET.Element(child_name)
+        insert_voucher_child(parent, child)
+    child.text = clean_text(value)
+    return True
+
+
+def first_direct_child(parent: ET.Element, child_name: str) -> ET.Element | None:
+    wanted = child_name.upper()
+    for child in parent:
+        if tag_name(child) == wanted:
+            return child
+    return None
+
+
+def insert_voucher_child(voucher: ET.Element, child: ET.Element) -> None:
+    insert_after = {"DATE", "VOUCHERNUMBER", "VOUCHERTYPENAME"}
+    insert_at = 0
+    for index, existing_child in enumerate(list(voucher)):
+        if tag_name(existing_child) in insert_after:
+            insert_at = index + 1
+    voucher.insert(insert_at, child)
+
+
+def update_purchase_bill_allocation_names(
+    voucher: ET.Element,
+    supplier_invoice_number: str,
+    *,
+    old_reference: str = "",
+) -> None:
+    party_ledger_name = first_text(voucher, "PARTYLEDGERNAME", "PARTYNAME", "BASICBASEPARTYNAME")
+    name_nodes: list[ET.Element] = []
+    for entry in ledger_entry_elements(voucher):
+        if not is_party_entry(entry, party_ledger_name):
+            continue
+        for allocation in entry:
+            if tag_name(allocation) != "BILLALLOCATIONS.LIST":
+                continue
+            name_node = first_direct_child(allocation, "NAME")
+            if name_node is not None and is_useful_reference(clean_text(name_node.text)):
+                name_nodes.append(name_node)
+
+    if not name_nodes:
+        return
+
+    old_key = clean_text(old_reference).casefold()
+    matched_nodes = [
+        node
+        for node in name_nodes
+        if old_key and clean_text(node.text).casefold() == old_key
+    ]
+    target_nodes = matched_nodes or (name_nodes if len(name_nodes) == 1 else [])
+    for node in target_nodes:
+        node.text = clean_text(supplier_invoice_number)
 
 
 def parse_tally_purchase_vouchers(raw_response: str) -> list[TallyPurchaseVoucher]:

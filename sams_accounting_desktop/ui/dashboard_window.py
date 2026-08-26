@@ -1,24 +1,33 @@
+from PySide6.QtCore import QEvent, Qt, QTimer
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QApplication,
+    QAbstractButton,
     QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMainWindow,
+    QPlainTextEdit,
     QPushButton,
     QScrollArea,
+    QTableWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from sams_accounting_desktop.config import APP_NAME, APP_VERSION
+from sams_accounting_desktop.config import APP_NAME, APP_VERSION, DEFAULT_TALLY_URL
 from sams_accounting_desktop.data import MODULES
-from sams_accounting_desktop.ui.components import ActivityTable, AppButton, InsightCard, KpiCard, ModuleCard, NavItem, StatusChip
-from sams_accounting_desktop.ui.icons import logo_icon, logo_pixmap, make_menu_icon
+from sams_accounting_desktop.ui.components import AppButton, ModuleCard, NavItem, StatusChip
+from sams_accounting_desktop.ui.icons import logo_icon, logo_pixmap
+from sams_accounting_desktop.ui.bank_pdf_panel import BankPdfPanel
 from sams_accounting_desktop.ui.purchase_reco_panel import PurchaseRecoPanel
 from sams_accounting_desktop.ui.sales_panel import SalesChoicePanel
 from sams_accounting_desktop.ui.styles import STYLESHEET
 from sams_accounting_desktop.ui.tally_panel import TallyConnectorPanel
+from sams_accounting_desktop.workers.tally_worker import TallyWorker
 
 
 class DashboardWindow(QMainWindow):
@@ -29,38 +38,43 @@ class DashboardWindow(QMainWindow):
         self.setMinimumSize(1180, 740)
         self.resize(1320, 820)
         self.nav_buttons: dict[str, NavItem] = {}
-        self.sidebar_collapsed = False
+        self.tally_status_worker: TallyWorker | None = None
+        self.current_view = "Dashboard"
+        self.view_history: list[str] = []
+        self.back_shortcut = QShortcut(QKeySequence("Esc"), self)
+        self.back_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self.back_shortcut.activated.connect(self.go_back)
+        QApplication.instance().installEventFilter(self)
 
         shell = QWidget()
         self.shell = shell
         shell.setObjectName("shell")
-        root = QHBoxLayout(shell)
+        root = QVBoxLayout(shell)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        self.sidebar_widget = self.sidebar()
-        root.addWidget(self.sidebar_widget)
+        self.navbar_widget = self.top_navigation()
+        root.addWidget(self.navbar_widget)
         self.workspace_scroll = self.workspace()
         root.addWidget(self.workspace_scroll, 1)
 
         self.setCentralWidget(shell)
         self.apply_styles()
-        self.create_floating_nav_button()
+        self.start_tally_status_monitor()
 
-    def sidebar(self) -> QWidget:
-        sidebar = QFrame()
-        sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(272)
+    def top_navigation(self) -> QWidget:
+        navbar = QFrame()
+        navbar.setObjectName("topNav")
+        navbar.setFixedHeight(86)
 
-        layout = QVBoxLayout(sidebar)
-        self.sidebar_layout = layout
-        layout.setContentsMargins(16, 78, 16, 18)
-        layout.setSpacing(8)
+        layout = QHBoxLayout(navbar)
+        layout.setContentsMargins(18, 12, 18, 12)
+        layout.setSpacing(14)
 
         brand = QHBoxLayout()
-        brand.setSpacing(12)
+        brand.setSpacing(10)
         logo = QLabel()
-        logo.setPixmap(logo_pixmap(46))
+        logo.setPixmap(logo_pixmap(42))
         brand.addWidget(logo)
 
         brand_copy = QWidget()
@@ -73,79 +87,85 @@ class DashboardWindow(QMainWindow):
         detail.setObjectName("brandDetail")
         copy.addWidget(name)
         copy.addWidget(detail)
-        self.brand_copy_widget = brand_copy
         brand.addWidget(brand_copy)
         layout.addLayout(brand)
-        layout.addSpacing(18)
 
-        nav = [
-            ("Dashboard", "DA"),
-            ("Tally", "TA"),
-            ("Excel", "XL"),
-            ("Bank PDF", "BP"),
-            ("Image PDF", "IP"),
-            ("Purchase Reco", "PR"),
-            ("Sales", "SA"),
-            ("Voucher Entry", "VE"),
-        ]
-        for index, (label, initials) in enumerate(nav):
-            button = NavItem(label, initials, active=index == 0)
-            button.clicked.connect(lambda _checked=False, name=label: self.open_view(name))
-            self.nav_buttons[label] = button
-            layout.addWidget(button)
+        nav_strip = QWidget()
+        nav_strip.setObjectName("navStrip")
+        nav_layout = QHBoxLayout(nav_strip)
+        nav_layout.setContentsMargins(8, 0, 8, 0)
+        nav_layout.setSpacing(6)
 
-        layout.addStretch()
+        desktop_button = NavItem("Desktop", "DA", active=True)
+        desktop_button.setMinimumHeight(42)
+        desktop_button.setMinimumWidth(112)
+        desktop_button.clicked.connect(lambda: self.open_view("Dashboard"))
+        self.nav_buttons["Dashboard"] = desktop_button
+        nav_layout.addWidget(desktop_button)
 
-        user = QFrame()
-        self.user_card = user
-        user.setObjectName("userCard")
-        user_layout = QVBoxLayout(user)
-        user_layout.setContentsMargins(14, 13, 14, 13)
-        user_layout.setSpacing(4)
-        account = QLabel("sameer mansuri")
-        account.setObjectName("userName")
-        plan = QLabel("License verified")
-        plan.setObjectName("userPlan")
-        user_layout.addWidget(account)
-        user_layout.addWidget(plan)
-        layout.addWidget(user)
+        nav_layout.addStretch()
+        layout.addWidget(nav_strip, 1)
 
-        return sidebar
+        self.tally_status_button = QPushButton("Tally: Checking...")
+        self.tally_status_button.setObjectName("tallyStatusChecking")
+        self.tally_status_button.setMinimumHeight(42)
+        self.tally_status_button.setMinimumWidth(172)
+        self.tally_status_button.setToolTip("Click to open Tally connector")
+        self.tally_status_button.clicked.connect(self.open_tally_from_status)
+        layout.addWidget(self.tally_status_button)
 
-    def create_floating_nav_button(self):
-        self.floating_nav_button = QPushButton(self.shell)
-        self.floating_nav_button.setObjectName("hamburgerButton")
-        self.floating_nav_button.setIcon(make_menu_icon(28, "#0f766e"))
-        self.floating_nav_button.setFixedSize(46, 46)
-        self.floating_nav_button.setToolTip("Collapse navigation")
-        self.floating_nav_button.clicked.connect(self.toggle_sidebar)
-        self.update_floating_nav_position()
+        return navbar
 
-    def toggle_sidebar(self):
-        self.sidebar_collapsed = not self.sidebar_collapsed
-        self.apply_sidebar_state()
+    def start_tally_status_monitor(self):
+        self.tally_status_timer = QTimer(self)
+        self.tally_status_timer.setInterval(10000)
+        self.tally_status_timer.timeout.connect(self.refresh_tally_status)
+        self.tally_status_timer.start()
+        QTimer.singleShot(250, self.refresh_tally_status)
 
-    def apply_sidebar_state(self):
-        width = 84 if self.sidebar_collapsed else 272
-        self.sidebar_widget.setFixedWidth(width)
-        self.sidebar_layout.setContentsMargins(12 if self.sidebar_collapsed else 16, 78, 12 if self.sidebar_collapsed else 16, 18)
-        self.brand_copy_widget.setVisible(not self.sidebar_collapsed)
-        self.user_card.setVisible(not self.sidebar_collapsed)
-        self.floating_nav_button.setToolTip("Expand navigation" if self.sidebar_collapsed else "Collapse navigation")
-        for button in self.nav_buttons.values():
-            button.set_compact(self.sidebar_collapsed)
-            button.set_active(button.isChecked())
-        self.update_floating_nav_position()
+    def open_tally_from_status(self):
+        self.open_view("Tally")
+        self.refresh_tally_status()
 
-    def update_floating_nav_position(self):
-        if not hasattr(self, "floating_nav_button"):
+    def refresh_tally_status(self):
+        if self.tally_status_worker and self.tally_status_worker.isRunning():
             return
-        self.floating_nav_button.move(18, 18)
-        self.floating_nav_button.raise_()
+        self.update_tally_status_button("Tally: Checking...", "checking")
+        worker = TallyWorker("test", DEFAULT_TALLY_URL)
+        self.tally_status_worker = worker
+        worker.finished.connect(self.handle_tally_status_finished)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.update_floating_nav_position()
+    def handle_tally_status_finished(self, _action: str, ok: bool, message: str, _payload: object):
+        text = "Tally: Connected" if ok else "Tally: Not connected"
+        state = "connected" if ok else "disconnected"
+        self.update_tally_status_button(text, state, message)
+        self.tally_status_worker = None
+
+    def update_tally_status_button(self, text: str, state: str, message: str = ""):
+        self.tally_status_button.setText(text)
+        object_name = {
+            "connected": "tallyStatusConnected",
+            "disconnected": "tallyStatusDisconnected",
+        }.get(state, "tallyStatusChecking")
+        self.tally_status_button.setObjectName(object_name)
+        tooltip = "Click to open Tally connector"
+        if message:
+            tooltip = f"{message}\n{tooltip}"
+        self.tally_status_button.setToolTip(tooltip)
+        self.tally_status_button.style().unpolish(self.tally_status_button)
+        self.tally_status_button.style().polish(self.tally_status_button)
+
+    def stop_tally_status_monitor(self):
+        if hasattr(self, "tally_status_timer"):
+            self.tally_status_timer.stop()
+        if self.tally_status_worker and self.tally_status_worker.isRunning():
+            self.tally_status_worker.wait(9000)
+
+    def closeEvent(self, event):
+        self.stop_tally_status_monitor()
+        super().closeEvent(event)
 
     def workspace(self) -> QWidget:
         scroll = QScrollArea()
@@ -160,19 +180,10 @@ class DashboardWindow(QMainWindow):
         page.setObjectName("workspace")
         layout = QVBoxLayout(page)
         layout.setContentsMargins(28, 22, 28, 26)
-        layout.setSpacing(18)
+        layout.setSpacing(16)
 
         layout.addWidget(self.topbar())
-        layout.addLayout(self.health_strip())
-        layout.addWidget(self.hero())
-        layout.addLayout(self.kpis())
-
-        middle = QHBoxLayout()
-        middle.setSpacing(18)
-        middle.addLayout(self.module_grid(), 3)
-        middle.addWidget(TallyConnectorPanel(), 1)
-        layout.addLayout(middle)
-        layout.addWidget(ActivityTable())
+        layout.addLayout(self.module_grid())
         return page
 
     def topbar(self) -> QWidget:
@@ -186,9 +197,9 @@ class DashboardWindow(QMainWindow):
 
         title_stack = QVBoxLayout()
         title_stack.setSpacing(2)
-        title = QLabel("Dashboard")
+        title = QLabel("Choose what you want to do")
         title.setObjectName("pageTitle")
-        subtitle = QLabel("Logged in: sameer mansuri | Subscription: Verified | AI credit: Rs 500.0000")
+        subtitle = QLabel("Simple accounting tools for Tally, GST, bank statements, and sales.")
         subtitle.setObjectName("pageSubtitle")
         title_stack.addWidget(title)
         title_stack.addWidget(subtitle)
@@ -196,73 +207,7 @@ class DashboardWindow(QMainWindow):
 
         layout.addStretch()
 
-        search = QLineEdit()
-        search.setObjectName("searchBox")
-        search.setPlaceholderText("Search module or workflow")
-        search.setFixedWidth(260)
-        layout.addWidget(search)
-        layout.addWidget(StatusChip("Live workspace", "ok"))
-        check_tally = AppButton("Check Tally", "secondary", "TA", "#0f766e")
-        check_tally.clicked.connect(lambda: self.open_view("Tally"))
-        layout.addWidget(check_tally)
-        layout.addWidget(AppButton("New Voucher", "primary", "VE", "#115e59"))
-
         return topbar
-
-    def health_strip(self) -> QHBoxLayout:
-        row = QHBoxLayout()
-        row.setSpacing(14)
-        row.addWidget(InsightCard("Tally gateway", "Localhost:9000", "Ready for company sync", "#0f766e", "TG"))
-        row.addWidget(InsightCard("License", "Verified", "Desktop access active", "#2563eb", "LC"))
-        row.addWidget(InsightCard("Release", APP_VERSION, "Update manifest enabled", "#7c3aed", "UP"))
-        row.addWidget(InsightCard("AI credit", "Rs 500.0000", "Available for assisted workflows", "#b54708", "AI"))
-        return row
-
-    def hero(self) -> QWidget:
-        hero = QFrame()
-        hero.setObjectName("hero")
-        hero.setMinimumHeight(142)
-
-        layout = QHBoxLayout(hero)
-        layout.setContentsMargins(24, 20, 22, 20)
-        layout.setSpacing(18)
-
-        copy = QVBoxLayout()
-        copy.setSpacing(5)
-        eyebrow = QLabel("Desktop SaaS control center")
-        eyebrow.setObjectName("eyebrow")
-        title = QLabel("Accounting operations, Tally posting, and GST reconciliation in one workspace")
-        title.setObjectName("heroTitle")
-        title.setWordWrap(True)
-        body = QLabel("Designed for office accounting work where PDF, Excel, GST data, and Tally Prime need to move together.")
-        body.setObjectName("heroBody")
-        body.setWordWrap(True)
-        copy.addWidget(eyebrow)
-        copy.addWidget(title)
-        copy.addWidget(body)
-        layout.addLayout(copy, 1)
-
-        action_stack = QVBoxLayout()
-        action_stack.setSpacing(9)
-        action_stack.addWidget(AppButton("Start Bank Parsing", "primary", "BP", "#0f766e"))
-        purchase_button = AppButton("Run Purchase Reco", "secondary", "PR", "#15803d")
-        purchase_button.clicked.connect(lambda: self.open_view("Purchase Reco"))
-        action_stack.addWidget(purchase_button)
-        sales_button = AppButton("Open Sales Generator", "secondary", "SA", "#be123c")
-        sales_button.clicked.connect(lambda: self.open_view("Sales"))
-        action_stack.addWidget(sales_button)
-        layout.addLayout(action_stack)
-
-        return hero
-
-    def kpis(self) -> QHBoxLayout:
-        row = QHBoxLayout()
-        row.setSpacing(14)
-        row.addWidget(KpiCard("Tally status", "Ready", "Localhost company data ready", "#0f766e"))
-        row.addWidget(KpiCard("Pending imports", "0", "No files waiting in queue", "#2563eb"))
-        row.addWidget(KpiCard("Reco mode", "Multi-file", "Multiple GST Excel files supported", "#15803d"))
-        row.addWidget(KpiCard("Review queue", "0", "Probable matches waiting", "#b54708"))
-        return row
 
     def module_grid(self) -> QGridLayout:
         grid = QGridLayout()
@@ -278,31 +223,84 @@ class DashboardWindow(QMainWindow):
         return grid
 
     def open_module(self, module_name: str):
-        if module_name == "Purchase Reco":
-            self.open_view("Purchase Reco")
-            return
-        if module_name == "Tally":
-            self.open_view("Tally")
-            return
-        if module_name == "Sales":
-            self.open_view("Sales")
+        self.open_view(module_name)
 
-    def open_view(self, view_name: str):
-        if view_name == "Purchase Reco":
-            self.set_nav_active("Purchase Reco")
+    def open_view(self, view_name: str, remember: bool = True):
+        if remember and view_name != self.current_view:
+            self.view_history.append(self.current_view)
+
+        if view_name in {"Purchase Reco", "Purchase Reconciliation"}:
+            self.current_view = "Purchase Reconciliation"
+            self.set_nav_active("Purchase Reconciliation")
             self.workspace_scroll.setWidget(PurchaseRecoPanel())
             return
         if view_name == "Tally":
+            self.current_view = "Tally"
             self.set_nav_active("Tally")
             self.workspace_scroll.setWidget(self.tool_page("Tally Connector", TallyConnectorPanel()))
             return
         if view_name == "Sales":
+            self.current_view = "Sales"
             self.set_nav_active("Sales")
             self.workspace_scroll.setWidget(SalesChoicePanel())
             return
+        if view_name == "Bank PDF":
+            self.current_view = "Bank PDF"
+            self.set_nav_active("Bank PDF")
+            self.workspace_scroll.setWidget(BankPdfPanel())
+            return
         if view_name == "Dashboard":
+            self.current_view = "Dashboard"
             self.set_nav_active("Dashboard")
             self.workspace_scroll.setWidget(self.dashboard_page())
+            return
+        module = self.module_by_name(view_name)
+        if module is not None:
+            self.current_view = module.title
+            self.set_nav_active(view_name)
+            self.workspace_scroll.setWidget(self.tool_page(f"{module.title} Workflow", self.pending_module_panel(module)))
+
+    def go_back(self):
+        if not self.view_history:
+            return
+        previous_view = self.view_history.pop()
+        self.open_view(previous_view, remember=False)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.go_back()
+            event.accept()
+            return
+        if self.handle_keyboard_navigation(event):
+            return
+        super().keyPressEvent(event)
+
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.Type.KeyPress and self.isActiveWindow():
+            if self.handle_keyboard_navigation(event):
+                return True
+        return super().eventFilter(watched, event)
+
+    def handle_keyboard_navigation(self, event) -> bool:
+        key = event.key()
+        focus = QApplication.focusWidget()
+        editable_widgets = (QLineEdit, QPlainTextEdit, QListWidget, QTableWidget)
+
+        if key in {Qt.Key.Key_Return, Qt.Key.Key_Enter} and isinstance(focus, QAbstractButton):
+            focus.click()
+            event.accept()
+            return True
+
+        if key not in {Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down}:
+            return False
+
+        if isinstance(focus, editable_widgets):
+            return False
+
+        move_forward = key in {Qt.Key.Key_Right, Qt.Key.Key_Down}
+        self.focusNextPrevChild(move_forward)
+        event.accept()
+        return True
 
     def tool_page(self, title: str, widget: QWidget) -> QWidget:
         page = QWidget()
@@ -331,6 +329,36 @@ class DashboardWindow(QMainWindow):
         layout.addWidget(widget)
         layout.addStretch()
         return page
+
+    def pending_module_panel(self, module) -> QWidget:
+        panel = QFrame()
+        panel.setObjectName("sidePanel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(22, 18, 22, 18)
+        layout.setSpacing(12)
+
+        badge = StatusChip("Setup pending", "warning")
+        title = QLabel(module.title)
+        title.setObjectName("sectionTitle")
+        body = QLabel(module.subtitle)
+        body.setObjectName("cardBody")
+        body.setWordWrap(True)
+        note = QLabel("Is workflow ki full screen abhi app build me connected nahi hai.")
+        note.setObjectName("smallText")
+        note.setWordWrap(True)
+        back_button = AppButton("Back to Desktop", "secondary", "DA", "#0f766e")
+        back_button.clicked.connect(lambda: self.open_view("Dashboard"))
+
+        layout.addWidget(badge)
+        layout.addWidget(title)
+        layout.addWidget(body)
+        layout.addWidget(note)
+        layout.addWidget(back_button)
+        layout.addStretch()
+        return panel
+
+    def module_by_name(self, module_name: str):
+        return next((module for module in MODULES if module.title == module_name), None)
 
     def set_nav_active(self, active_name: str):
         for name, button in self.nav_buttons.items():

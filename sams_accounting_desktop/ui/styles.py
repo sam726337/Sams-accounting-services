@@ -14,29 +14,26 @@ STYLESHEET = """
 QWidget#shell,
 QWidget#workspace,
 QWidget#startupWindow {
-    background: #f4f7fb;
+    background: #f6f8fb;
     color: #101828;
     font-family: Segoe UI;
 }
 
 QScrollArea#workspaceScroll {
-    background: #f4f7fb;
+    background: #f6f8fb;
 }
 
+QFrame#topNav,
 QFrame#sidebar {
     background: #0b1220;
 }
 
-QPushButton#hamburgerButton {
-    background: #ffffff;
-    border: 1px solid rgba(15, 118, 110, 0.22);
-    border-radius: 8px;
-    padding: 0;
+QFrame#topNav {
+    border-bottom: 1px solid #1f2937;
 }
 
-QPushButton#hamburgerButton:hover {
-    background: #effaf8;
-    border-color: rgba(15, 118, 110, 0.45);
+QWidget#navStrip {
+    background: transparent;
 }
 
 QLabel#brandTitle {
@@ -57,8 +54,8 @@ QPushButton#navActive {
     border-radius: 7px;
     color: #d0d5dd;
     background: transparent;
-    text-align: left;
-    padding: 7px 12px;
+    text-align: center;
+    padding: 7px 10px;
     font-size: 13px;
 }
 
@@ -71,6 +68,46 @@ QPushButton#navActive {
     background: #123f3d;
     color: #ffffff;
     font-weight: 700;
+}
+
+QPushButton#tallyStatusChecking,
+QPushButton#tallyStatusConnected,
+QPushButton#tallyStatusDisconnected {
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+}
+
+QPushButton#tallyStatusChecking {
+    background: #1f2937;
+    color: #d0d5dd;
+    border: 1px solid #344054;
+}
+
+QPushButton#tallyStatusChecking:hover {
+    background: #263244;
+}
+
+QPushButton#tallyStatusConnected {
+    background: #063f34;
+    color: #d1fae5;
+    border: 1px solid rgba(20, 184, 166, 0.55);
+}
+
+QPushButton#tallyStatusConnected:hover {
+    background: #075646;
+}
+
+QPushButton#tallyStatusDisconnected {
+    background: #3f1515;
+    color: #fee2e2;
+    border: 1px solid rgba(248, 113, 113, 0.5);
+}
+
+QPushButton#tallyStatusDisconnected:hover {
+    background: #561c1c;
 }
 
 QFrame#userCard {
@@ -95,10 +132,13 @@ QFrame#insightCard,
 QFrame#stepperPanel,
 QFrame#detailPanel,
 QFrame#choiceCard,
+QFrame#formPanel,
+QFrame#previewPanel,
+QFrame#salesProgressPanel,
 QFrame#startupCard {
     background: #ffffff;
-    border: 1px solid #d9e0ea;
-    border-radius: 8px;
+    border: 1px solid #e3e8ef;
+    border-radius: 12px;
 }
 
 QFrame#choiceCard {
@@ -120,8 +160,8 @@ QFrame#insightCard {
 
 QLabel#pageTitle {
     color: #101828;
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 800;
 }
 
 QLabel#startupTitle {
@@ -158,7 +198,7 @@ QLabel#cardBody,
 QLabel#smallText,
 QLabel.smallText {
     color: #667085;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 QLabel#eyebrow {
@@ -175,7 +215,8 @@ QLabel#heroTitle {
 }
 
 QLabel#mutedLabel,
-QLabel#stateText {
+QLabel#stateText,
+QLabel#formLabel {
     color: #667085;
     font-size: 11px;
 }
@@ -194,8 +235,8 @@ QLabel#insightValue {
 
 QLabel#cardTitle {
     color: #101828;
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 800;
 }
 
 QLabel#choiceTitle {
@@ -215,13 +256,19 @@ QLabel#sectionTitle {
     font-weight: 700;
 }
 
+QLabel#progressTitle {
+    color: #101828;
+    font-size: 12px;
+    font-weight: 800;
+}
+
 QLabel#badge {
-    background: #eef8f7;
+    background: #f0fdfa;
     color: #115e59;
-    border-radius: 10px;
-    padding: 4px 10px;
+    border-radius: 12px;
+    padding: 5px 10px;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 800;
 }
 
 QLabel#healthValue {
@@ -276,13 +323,47 @@ QLineEdit#searchBox {
     color: #101828;
 }
 
+QComboBox#masterCombo {
+    background: #f8fafc;
+    border: 1px solid #d9e0ea;
+    border-radius: 7px;
+    padding: 8px 10px;
+    color: #101828;
+}
+
+QComboBox#masterCombo QAbstractItemView {
+    background: #ffffff;
+    border: 1px solid #d9e0ea;
+    border-radius: 7px;
+    padding: 4px;
+    color: #101828;
+    selection-background-color: #d9f3ef;
+    selection-color: #101828;
+}
+
+QDateEdit#dateInput,
+QSpinBox#numberInput {
+    background: #f8fafc;
+    border: 1px solid #d9e0ea;
+    border-radius: 7px;
+    padding: 8px 10px;
+    color: #101828;
+}
+
+QDateEdit#dateInput:focus,
+QSpinBox#numberInput:focus,
+QLineEdit#searchBox:focus,
+QComboBox#masterCombo:focus {
+    border-color: rgba(15, 118, 110, 0.55);
+}
+
 QPushButton#primaryButton {
     background: #0f766e;
     color: #ffffff;
     border: 0;
-    border-radius: 7px;
-    padding: 9px 15px;
-    font-weight: 700;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-weight: 800;
 }
 
 QPushButton#primaryButton:disabled,
@@ -300,9 +381,9 @@ QPushButton#secondaryButton {
     background: #f7f9fc;
     color: #101828;
     border: 1px solid #d9e0ea;
-    border-radius: 7px;
-    padding: 8px 14px;
-    font-weight: 600;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-weight: 700;
 }
 
 QPushButton#secondaryButton:hover {
@@ -344,6 +425,22 @@ QProgressBar#healthProgress {
 QProgressBar#healthProgress::chunk {
     background: #0f766e;
     border-radius: 4px;
+}
+
+QProgressBar#salesImportProgress {
+    height: 18px;
+    background: #e8eef5;
+    border: 1px solid #d9e0ea;
+    border-radius: 7px;
+    color: #101828;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+}
+
+QProgressBar#salesImportProgress::chunk {
+    background: #0f766e;
+    border-radius: 6px;
 }
 
 QListWidget#ledgerList {
@@ -405,6 +502,21 @@ QTableWidget#resultTable {
     gridline-color: transparent;
     selection-background-color: transparent;
     font-size: 12px;
+}
+
+QTableWidget#salesTable {
+    border: 1px solid #d9e0ea;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #101828;
+    gridline-color: transparent;
+    selection-background-color: #d9f3ef;
+    selection-color: #101828;
+    font-size: 12px;
+}
+
+QTableWidget#salesTable::item {
+    padding: 7px;
 }
 
 QFrame#stepActive,

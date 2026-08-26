@@ -118,12 +118,7 @@ class TallyPurchaseRow:
 
     @property
     def invoice_sources(self) -> list[str]:
-        return [
-            self.voucher_number,
-            self.supplier_invoice_number,
-            self.narration,
-            *(self.bill_references or []),
-        ]
+        return [self.supplier_invoice_number] if self.supplier_invoice_number else []
 
 
 @dataclass
@@ -347,12 +342,9 @@ def invoice_digit_suffixes(value: str) -> set[str]:
         for candidate in (trailing_group, normalized_trailing_group):
             if len(candidate) >= 2:
                 suffixes.add(candidate)
-    if len(digits) < 4:
-        suffixes.add(digits[-2:])
-        return suffixes
-    suffixes.add(digits[-4:])
-    if len(digits) >= 5:
-        suffixes.add(digits[-5:])
+    for suffix_length in (2, 3, 4, 5):
+        if len(digits) >= suffix_length:
+            suffixes.add(digits[-suffix_length:])
     return suffixes
 
 
@@ -541,13 +533,8 @@ def score_purchase_match(
         for label, ok, _diff, _tolerance in amount_checks
         if is_material_amount_check(label, gst_row, tally_row)
     )
-    core_amount_ok = invoice_value_ok and taxable_value_ok
     same_party = gstin_match or supplier_score > 0
     has_date_pair = bool(gst_row.invoice_date and tally_row.date)
-    amount_date_evidence = core_amount_ok and (date_close if has_date_pair else True)
-    supplier_amount_date_supported = supplier_score >= 2 and invoice_value_ok and not date_mismatch and (
-        date_close if has_date_pair else True
-    )
     invoice_evidence = full_invoice_match or suffix_invoice_match
     suffix_supported = suffix_invoice_match and same_party and amount_tax_ok and not date_mismatch and (
         date_close if has_date_pair else True
@@ -559,8 +546,6 @@ def score_purchase_match(
         (full_invoice_match and (same_party or amount_tax_ok))
         or suffix_supported
         or suffix_tax_review_supported
-        or (gstin_match and amount_date_evidence)
-        or supplier_amount_date_supported
     )
     if suffix_invoice_match and not suffix_supported and not suffix_tax_review_supported:
         reasons.append("Invoice suffix ignored because amount/date support missing")
@@ -570,10 +555,6 @@ def score_purchase_match(
         match_rank = 4
     elif suffix_supported or suffix_tax_review_supported:
         match_rank = 3
-    elif gstin_match and amount_date_evidence:
-        match_rank = 2
-    elif supplier_amount_date_supported:
-        match_rank = 1
 
     if not reasons:
         reasons.append("Weak match")
@@ -590,10 +571,8 @@ def score_purchase_match(
         "invoice_evidence": invoice_evidence,
         "suffix_supported": suffix_supported,
         "suffix_tax_review_supported": suffix_tax_review_supported,
-        "supplier_amount_date_supported": supplier_amount_date_supported,
         "supplier_score": supplier_score,
         "same_party": same_party,
-        "core_amount_ok": core_amount_ok,
         "amount_tax_ok": amount_tax_ok,
         "date_close": date_close,
         "date_mismatch": date_mismatch,
@@ -616,12 +595,6 @@ def classify_match(match: dict | None) -> str:
         return "probable"
 
     if match.get("suffix_tax_review_supported"):
-        return "probable"
-
-    if match["gstin_match"] and match["core_amount_ok"] and match["date_close"]:
-        return "probable"
-
-    if match.get("supplier_amount_date_supported"):
         return "probable"
 
     return "missing"
@@ -695,14 +668,23 @@ def invoice_full_match(gst_invoice: str, sources: list[str]) -> bool:
     invoice = normalize_match_text(gst_invoice)
     if not invoice:
         return False
+    invoice_digits = only_digits(invoice)
     if len(invoice) < 3:
-        invoice_digits = only_digits(invoice)
         return any(
             invoice == normalize_match_text(source)
             or (len(invoice_digits) >= 2 and invoice_digits == only_digits(source))
             for source in sources
         )
-    return any(invoice and invoice in normalize_match_text(source) for source in sources)
+    for source in sources:
+        source_text = normalize_match_text(source)
+        source_digits = only_digits(source)
+        if invoice == source_text:
+            return True
+        if invoice.isdigit() and invoice_digits and invoice_digits == source_digits:
+            return True
+        if not invoice.isdigit() and invoice in source_text:
+            return True
+    return False
 
 
 def invoice_suffix_match(gst_invoice: str, sources: list[str]) -> bool:
