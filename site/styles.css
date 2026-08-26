@@ -481,6 +481,49 @@ a {
   border-bottom: 1px solid var(--line);
 }
 
+.client-band {
+  background: #f6f8fa;
+  border-bottom: 1px solid var(--line);
+}
+
+.client-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.client-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  box-shadow: 0 8px 22px rgba(17, 24, 39, 0.08);
+}
+
+.client-card img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #edf8f6;
+}
+
+.client-card span {
+  color: var(--teal-deep);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.client-card strong {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.28;
+}
+
 .delivery-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1168,6 +1211,7 @@ a {
   .service-grid,
   .delivery-grid,
   .portfolio-grid,
+  .client-grid,
   .faq-grid,
   .plans-grid,
   .split-layout,
@@ -1188,6 +1232,7 @@ a {
   }
 
   .portfolio-card,
+  .client-card,
   .faq-item,
   .delivery-grid article,
   .timeline article {
