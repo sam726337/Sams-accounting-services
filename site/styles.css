@@ -21,6 +21,7 @@ html {
 
 body {
   margin: 0;
+  overflow-x: hidden;
   color: var(--ink);
   background: var(--paper);
   font-family: Inter, "Segoe UI", Arial, sans-serif;
@@ -606,9 +607,9 @@ a {
 
 .portfolio-card {
   display: flex;
-  min-height: 244px;
+  min-height: 100%;
   flex-direction: column;
-  padding: 22px;
+  padding: 24px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--white);
@@ -644,6 +645,38 @@ a {
 .portfolio-card p {
   margin: 0 0 20px;
   font-size: 15px;
+}
+
+.case-study-list {
+  display: grid;
+  gap: 14px;
+  margin: 2px 0 22px;
+}
+
+.case-study-list div {
+  display: grid;
+  gap: 5px;
+}
+
+.case-study-list dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.case-study-list dd {
+  margin: 0;
+  color: #42545b;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.case-study-list .case-result {
+  padding: 12px 14px;
+  border-left: 3px solid var(--teal);
+  border-radius: 6px;
+  background: #f3f9f7;
 }
 
 .portfolio-card a {
@@ -1014,6 +1047,12 @@ a {
   padding: 24px;
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .contact-form label {
   display: grid;
   gap: 8px;
@@ -1048,6 +1087,23 @@ a {
 
 .contact-form .button {
   border: 0;
+}
+
+.form-note,
+.form-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.form-status {
+  color: var(--teal-deep);
+  font-weight: 800;
+}
+
+.form-status:empty {
+  display: none;
 }
 
 .contact-panel {
@@ -1222,6 +1278,10 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
   .proof-strip,
   .timeline {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1245,8 +1305,30 @@ a {
 }
 
 @media (max-width: 520px) {
+  .site-header {
+    gap: 10px;
+    padding: 12px 18px;
+  }
+
   .brand {
     font-size: 15px;
+  }
+
+  .nav-links {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px 10px;
+    overflow: visible;
+    padding: 4px 0 0;
+    font-size: 12px;
+  }
+
+  .nav-links a {
+    display: flex;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
   .hero h1 {
@@ -1254,7 +1336,13 @@ a {
   }
 
   .page-hero h1 {
-    font-size: 34px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: 32px;
+  }
+
+  .page-hero p {
+    font-size: 16px;
   }
 
   .product-hero {
@@ -1275,6 +1363,11 @@ a {
 
   .section {
     padding: 54px 18px;
+  }
+
+  .contact-form,
+  .contact-panel {
+    padding: 18px;
   }
 
   .section h2 {
