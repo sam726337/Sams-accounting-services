@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">The Jishu IT Solution logo</title>
+  <desc id="desc">Circular blue and white logo for The Jishu IT Solution.</desc>
+  <rect width="512" height="512" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="236" fill="#ffffff" stroke="#17202a" stroke-width="16"/>
+  <circle cx="256" cy="256" r="184" fill="#f6f8fa" stroke="#147d74" stroke-width="10"/>
+  <path d="M256 130 360 190v128L256 382 152 318V190Z" fill="#ffffff" stroke="#17202a" stroke-width="14" stroke-linejoin="round"/>
+  <text x="256" y="274" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="82" font-weight="900" fill="#17202a">TJ</text>
+  <text x="256" y="312" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="800" fill="#147d74">IT</text>
+  <text x="256" y="70" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="900" fill="#17202a" letter-spacing="1">THE JISHU</text>
+  <text x="256" y="458" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="900" fill="#17202a" letter-spacing="1">IT SOLUTION</text>
+</svg>
