@@ -475,6 +475,12 @@ a {
   border-bottom: 1px solid var(--line);
 }
 
+.global-band {
+  background: var(--white);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
 .delivery-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -613,6 +619,31 @@ a {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.faq-item {
+  min-height: 210px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+}
+
+.faq-item h3 {
+  margin: 0 0 10px;
+  font-size: 19px;
+  line-height: 1.24;
+}
+
+.faq-item p {
+  margin: 0;
+  font-size: 15px;
 }
 
 .plan-card {
@@ -1137,6 +1168,7 @@ a {
   .service-grid,
   .delivery-grid,
   .portfolio-grid,
+  .faq-grid,
   .plans-grid,
   .split-layout,
   .cta-layout,
@@ -1156,6 +1188,7 @@ a {
   }
 
   .portfolio-card,
+  .faq-item,
   .delivery-grid article,
   .timeline article {
     min-height: auto;
