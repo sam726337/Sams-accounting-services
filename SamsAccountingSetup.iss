@@ -1,23 +1,25 @@
 [Setup]
 AppId={{6F1B60E7-1E58-4E30-8B54-80D4AC86E211}
 AppName=Sams Accounting Desktop
-AppVersion=1.0.2
-AppPublisher=Sams IT Solution
+AppVersion=1.0.3
+AppPublisher=The Jishu IT Solution
 DefaultDirName={autopf}\Sams Accounting Desktop
 DefaultGroupName=Sams Accounting Desktop
 DisableProgramGroupPage=yes
-OutputDir=installer-output
-OutputBaseFilename=SamsAccountingSetup-1.0.2
+OutputDir=installer-output-1.0.3-r4
+OutputBaseFilename=SamsAccountingSetup-1.0.3
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName=Sams Accounting Desktop
-VersionInfoVersion=1.0.2.0
-VersionInfoCompany=Sams IT Solution
+VersionInfoVersion=1.0.3.0
+VersionInfoCompany=The Jishu IT Solution
 VersionInfoDescription=Sams Accounting Desktop Setup
 VersionInfoProductName=Sams Accounting Desktop
+LicenseFile=TERMS.txt
+InfoBeforeFile=PRIVACY.txt
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -26,7 +28,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "dist\SamsAccountingDesktop\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "release-1.0.3-r3\SamsAccountingDesktop\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Sams Accounting Desktop"; Filename: "{app}\SamsAccountingDesktop.exe"

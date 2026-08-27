@@ -71,7 +71,7 @@ class BankPdfPanel(QWidget):
         copy = QVBoxLayout()
         title = QLabel("Bank PDF Parser")
         title.setObjectName("pageTitle")
-        subtitle = QLabel("Selectable bank statement PDF ko Payment/Receipt voucher preview me convert karein.")
+        subtitle = QLabel("Convert a selectable bank statement into reviewable payment and receipt vouchers.")
         subtitle.setObjectName("pageSubtitle")
         copy.addWidget(title)
         copy.addWidget(subtitle)
@@ -144,14 +144,16 @@ class BankPdfPanel(QWidget):
         self.table.setShowGrid(False)
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+        for column in (0, 1, 2, 3, 4, 5, 7):
+            self.table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(0, 104)
+        self.table.setColumnWidth(1, 124)
+        self.table.setColumnWidth(2, 184)
+        self.table.setColumnWidth(3, 202)
+        self.table.setColumnWidth(4, 94)
+        self.table.setColumnWidth(5, 94)
         self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.setColumnWidth(7, 112)
         layout.addWidget(self.table, 1)
         return panel
 
@@ -181,11 +183,11 @@ class BankPdfPanel(QWidget):
             return
         self.pdf_file_path = file_path
         self.file_label.setText(Path(file_path).name)
-        self.set_status("info", "PDF selected. Parse PDF click karein.")
+        self.set_status("info", "PDF selected. Select Parse PDF to continue.")
 
     def parse_pdf(self):
         if not self.pdf_file_path:
-            self.set_status("warning", "Pehle bank PDF select karein.")
+            self.set_status("warning", "Select a bank statement PDF first.")
             return
         try:
             self.transactions = parse_bank_pdf_transactions(self.pdf_file_path)
@@ -195,7 +197,7 @@ class BankPdfPanel(QWidget):
             return
         self.populate_preview()
         self.import_button.setEnabled(bool(self.transactions))
-        self.set_status("ok", f"{len(self.transactions)} transactions parsed. Review karke import karein.")
+        self.set_status("ok", f"{len(self.transactions)} transactions parsed. Review them before importing.")
 
     def populate_preview(self):
         self.table.setRowCount(len(self.transactions))
@@ -222,6 +224,10 @@ class BankPdfPanel(QWidget):
                     if value and combo.findText(value, Qt.MatchFlag.MatchFixedString) < 0:
                         combo.insertItem(0, value)
                     combo.setCurrentText(value)
+                    line_edit = combo.lineEdit()
+                    if line_edit is not None:
+                        line_edit.setCursorPosition(0)
+                        line_edit.setToolTip(value or combo.lineEdit().placeholderText())
                     self.table.setCellWidget(row, column, combo)
                     continue
                 item = QTableWidgetItem(value)

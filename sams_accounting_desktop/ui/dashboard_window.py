@@ -1,4 +1,4 @@
-from PySide6.QtCore import QEvent, Qt, QTimer
+from PySide6.QtCore import QDateTime, QEvent, Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
@@ -35,10 +35,11 @@ class DashboardWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} {APP_VERSION}")
         self.setWindowIcon(logo_icon(64))
-        self.setMinimumSize(1180, 740)
+        self.setMinimumSize(1180, 700)
         self.resize(1320, 820)
         self.nav_buttons: dict[str, NavItem] = {}
         self.tally_status_worker: TallyWorker | None = None
+        self.tally_status_state = "checking"
         self.current_view = "Dashboard"
         self.view_history: list[str] = []
         self.back_shortcut = QShortcut(QKeySequence("Esc"), self)
@@ -65,7 +66,7 @@ class DashboardWindow(QMainWindow):
     def top_navigation(self) -> QWidget:
         navbar = QFrame()
         navbar.setObjectName("topNav")
-        navbar.setFixedHeight(86)
+        navbar.setFixedHeight(78)
 
         layout = QHBoxLayout(navbar)
         layout.setContentsMargins(18, 12, 18, 12)
@@ -81,9 +82,9 @@ class DashboardWindow(QMainWindow):
         copy = QVBoxLayout(brand_copy)
         copy.setContentsMargins(0, 0, 0, 0)
         copy.setSpacing(2)
-        name = QLabel("Sam's Accounting")
+        name = QLabel("Sams Accounting")
         name.setObjectName("brandTitle")
-        detail = QLabel("Automation workspace")
+        detail = QLabel("Desktop workspace")
         detail.setObjectName("brandDetail")
         copy.addWidget(name)
         copy.addWidget(detail)
@@ -106,10 +107,10 @@ class DashboardWindow(QMainWindow):
         nav_layout.addStretch()
         layout.addWidget(nav_strip, 1)
 
-        self.tally_status_button = QPushButton("Tally: Checking...")
+        self.tally_status_button = QPushButton("Tally checking\nConnecting…")
         self.tally_status_button.setObjectName("tallyStatusChecking")
-        self.tally_status_button.setMinimumHeight(42)
-        self.tally_status_button.setMinimumWidth(172)
+        self.tally_status_button.setMinimumHeight(48)
+        self.tally_status_button.setMinimumWidth(214)
         self.tally_status_button.setToolTip("Click to open Tally connector")
         self.tally_status_button.clicked.connect(self.open_tally_from_status)
         layout.addWidget(self.tally_status_button)
@@ -118,7 +119,7 @@ class DashboardWindow(QMainWindow):
 
     def start_tally_status_monitor(self):
         self.tally_status_timer = QTimer(self)
-        self.tally_status_timer.setInterval(10000)
+        self.tally_status_timer.setInterval(15000)
         self.tally_status_timer.timeout.connect(self.refresh_tally_status)
         self.tally_status_timer.start()
         QTimer.singleShot(250, self.refresh_tally_status)
@@ -130,20 +131,25 @@ class DashboardWindow(QMainWindow):
     def refresh_tally_status(self):
         if self.tally_status_worker and self.tally_status_worker.isRunning():
             return
-        self.update_tally_status_button("Tally: Checking...", "checking")
+        if self.tally_status_state == "checking":
+            self.update_tally_status_button("Tally checking\nConnecting…", "checking")
         worker = TallyWorker("test", DEFAULT_TALLY_URL)
         self.tally_status_worker = worker
         worker.finished.connect(self.handle_tally_status_finished)
         worker.finished.connect(worker.deleteLater)
         worker.start()
 
-    def handle_tally_status_finished(self, _action: str, ok: bool, message: str, _payload: object):
-        text = "Tally: Connected" if ok else "Tally: Not connected"
+    def handle_tally_status_finished(self, _action: str, ok: bool, message: str, payload: object):
+        checked_at = QDateTime.currentDateTime().toString("h:mm AP")
+        companies = payload if ok and isinstance(payload, list) else []
+        detail = companies[0] if companies else ("Available" if ok else "Retry available")
+        text = f"Tally connected\n{detail} · {checked_at}" if ok else f"Tally offline\n{detail} · {checked_at}"
         state = "connected" if ok else "disconnected"
         self.update_tally_status_button(text, state, message)
         self.tally_status_worker = None
 
     def update_tally_status_button(self, text: str, state: str, message: str = ""):
+        self.tally_status_state = state
         self.tally_status_button.setText(text)
         object_name = {
             "connected": "tallyStatusConnected",
@@ -179,8 +185,8 @@ class DashboardWindow(QMainWindow):
         page = QWidget()
         page.setObjectName("workspace")
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(28, 22, 28, 26)
-        layout.setSpacing(16)
+        layout.setContentsMargins(28, 18, 28, 20)
+        layout.setSpacing(12)
 
         layout.addWidget(self.topbar())
         layout.addLayout(self.module_grid())
@@ -189,7 +195,7 @@ class DashboardWindow(QMainWindow):
     def topbar(self) -> QWidget:
         topbar = QFrame()
         topbar.setObjectName("topbar")
-        topbar.setMinimumHeight(76)
+        topbar.setFixedHeight(72)
 
         layout = QHBoxLayout(topbar)
         layout.setContentsMargins(22, 12, 22, 12)
@@ -197,9 +203,9 @@ class DashboardWindow(QMainWindow):
 
         title_stack = QVBoxLayout()
         title_stack.setSpacing(2)
-        title = QLabel("Choose what you want to do")
+        title = QLabel("Select a workflow")
         title.setObjectName("pageTitle")
-        subtitle = QLabel("Simple accounting tools for Tally, GST, bank statements, and sales.")
+        subtitle = QLabel("Review, reconcile, and post accounting data with confidence.")
         subtitle.setObjectName("pageSubtitle")
         title_stack.addWidget(title)
         title_stack.addWidget(subtitle)
@@ -211,7 +217,8 @@ class DashboardWindow(QMainWindow):
 
     def module_grid(self) -> QGridLayout:
         grid = QGridLayout()
-        grid.setSpacing(14)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(10)
         for col in range(2):
             grid.setColumnStretch(col, 1)
 

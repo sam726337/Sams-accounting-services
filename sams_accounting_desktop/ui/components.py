@@ -22,7 +22,7 @@ class AppButton(QPushButton):
         super().__init__(text)
         self.setCursor(Qt.PointingHandCursor)
         self.setObjectName(f"{variant}Button")
-        self.setMinimumHeight(38)
+        self.setMinimumHeight(36)
         if icon_text:
             self.setIcon(make_icon(icon_text, icon_color, 24, 6))
             self.setIconSize(QSize(24, 24))
@@ -190,25 +190,20 @@ class ModuleCard(QFrame):
         super().__init__()
         self.module = module
         self.setObjectName("moduleCard")
-        self.setMinimumHeight(190)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setFixedHeight(144)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        accent = QFrame()
-        accent.setFixedHeight(4)
-        accent.setStyleSheet(f"background: {module.accent}; border-top-left-radius: 8px; border-top-right-radius: 8px;")
-        layout.addWidget(accent)
-
         body = QVBoxLayout()
-        body.setContentsMargins(20, 18, 20, 18)
-        body.setSpacing(14)
+        body.setContentsMargins(18, 16, 18, 14)
+        body.setSpacing(10)
 
         header = QHBoxLayout()
         icon = QLabel()
-        icon.setPixmap(make_icon(module.initials, module.accent, 42, 9).pixmap(42, 42))
+        icon.setPixmap(make_icon(module.initials, module.accent, 38, 8).pixmap(38, 38))
         title_stack = QVBoxLayout()
         title_stack.setSpacing(2)
         title = QLabel(module.title)
@@ -227,11 +222,13 @@ class ModuleCard(QFrame):
         subtitle.setObjectName("cardBody")
         subtitle.setWordWrap(True)
         body.addWidget(subtitle)
-        body.addStretch()
-
-        open_button = AppButton("Open", "primary")
+        action_row = QHBoxLayout()
+        action_row.addStretch()
+        open_button = AppButton("Open module  →", "card")
+        open_button.setMinimumWidth(132)
         open_button.clicked.connect(lambda: self.open_requested.emit(self.module.title))
-        body.addWidget(open_button)
+        action_row.addWidget(open_button)
+        body.addLayout(action_row)
 
         layout.addLayout(body)
 

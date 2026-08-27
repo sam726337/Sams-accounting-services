@@ -1,0 +1,11 @@
+SAMS ACCOUNTING DESKTOP - PRIVACY NOTICE
+Effective date: 27 August 2026
+
+The app stores activation details, licence or trial state, consent version, and timestamps in the local Windows application-data folder. Accounting files selected by you are processed locally. The app connects to the Tally URL you configure, normally 127.0.0.1:9000, and checks our published update manifest. It does not include advertising trackers or analytics and does not automatically upload accounting files to our servers.
+
+Activation requires separate acceptance of the Terms and Privacy Policy. You may decline activation or withdraw consent by contacting us and removing local settings or uninstalling the app. Files and exports remain where you store them.
+
+We do not sell personal data. Subject to applicable law, you may request information, correction, completion, erasure, consent withdrawal, or grievance handling regarding personal data we control.
+
+Full Policy: https://thejishu.in/privacy.html
+Privacy and grievance contact: sameermansurisam@gmail.com | +91 98269 05008

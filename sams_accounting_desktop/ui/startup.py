@@ -3,15 +3,19 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
+    QCheckBox,
+    QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
 
-from sams_accounting_desktop.config import APP_NAME, APP_VERSION
+from sams_accounting_desktop.config import APP_NAME, APP_VERSION, PRIVACY_URL, TERMS_URL
+from sams_accounting_desktop.legal import PRIVACY_POLICY, TERMS_OF_USE
 from sams_accounting_desktop.services.update_checker import UpdateInfo
 from sams_accounting_desktop.state import start_local_trial, verify_license_details
 from sams_accounting_desktop.ui.components import AppButton, StatusChip
@@ -67,6 +71,38 @@ class SplashScreen(QWidget):
         self.status.set_status(status, text)
 
 
+class LegalDocumentDialog(QDialog):
+    def __init__(self, title: str, text: str, online_url: str, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.online_url = online_url
+        self.setWindowTitle(title)
+        self.setMinimumSize(760, 600)
+        self.setStyleSheet(STYLESHEET)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        heading = QLabel(title)
+        heading.setObjectName("pageTitle")
+        layout.addWidget(heading)
+
+        document = QTextBrowser()
+        document.setObjectName("legalDocument")
+        document.setPlainText(text)
+        layout.addWidget(document, 1)
+
+        buttons = QHBoxLayout()
+        online = AppButton("View online", "secondary")
+        online.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(self.online_url)))
+        close = AppButton("Close", "primary")
+        close.clicked.connect(self.accept)
+        buttons.addStretch()
+        buttons.addWidget(online)
+        buttons.addWidget(close)
+        layout.addLayout(buttons)
+
+
 class LicenseWindow(QWidget):
     accepted = Signal()
 
@@ -75,7 +111,7 @@ class LicenseWindow(QWidget):
         self.setWindowTitle(f"{APP_NAME} License")
         self.setObjectName("startupWindow")
         self.setWindowIcon(logo_icon(64))
-        self.setMinimumSize(760, 500)
+        self.setMinimumSize(860, 650)
         self.setStyleSheet(STYLESHEET)
 
         layout = QHBoxLayout(self)
@@ -92,7 +128,7 @@ class LicenseWindow(QWidget):
         intro_layout.addWidget(logo)
         title = QLabel("License check")
         title.setObjectName("startupTitleLight")
-        body = QLabel("Secure desktop access ke liye license verify karein. Demo testing ke liye SAM-DEMO key use kar sakte hain.")
+        body = QLabel("Activate a signed licence or start a time-limited local trial. Review every accounting entry before posting to Tally.")
         body.setObjectName("startupBodyLight")
         body.setWordWrap(True)
         intro_layout.addWidget(title)
@@ -110,7 +146,7 @@ class LicenseWindow(QWidget):
         heading.setObjectName("pageTitle")
         form_layout.addWidget(heading)
 
-        self.name_input = QLineEdit("sameer mansuri")
+        self.name_input = QLineEdit()
         self.name_input.setObjectName("searchBox")
         self.name_input.setPlaceholderText("Name")
         form_layout.addWidget(self.field("Name", self.name_input))
@@ -120,20 +156,39 @@ class LicenseWindow(QWidget):
         self.contact_input.setPlaceholderText("Email or mobile")
         form_layout.addWidget(self.field("Email or mobile", self.contact_input))
 
-        self.license_input = QLineEdit("SAM-DEMO")
+        self.license_input = QLineEdit()
         self.license_input.setObjectName("searchBox")
-        self.license_input.setPlaceholderText("SAM-DEMO or SAM-XXXX")
+        self.license_input.setPlaceholderText("Paste your signed SAM1 licence key")
         form_layout.addWidget(self.field("License key", self.license_input))
 
         self.message = StatusChip("Enter details to continue.", "info")
         form_layout.addWidget(self.message)
 
-        verify_button = AppButton("Verify License", "primary", "OK", "#0f766e")
-        verify_button.clicked.connect(self.verify_license)
-        trial_button = AppButton("Continue Local Trial", "secondary", "TR", "#2563eb")
-        trial_button.clicked.connect(self.continue_trial)
-        form_layout.addWidget(verify_button)
-        form_layout.addWidget(trial_button)
+        legal_actions = QHBoxLayout()
+        terms_button = AppButton("View Terms", "secondary")
+        terms_button.clicked.connect(lambda: self.open_legal("Terms of Use", TERMS_OF_USE, TERMS_URL))
+        privacy_button = AppButton("View Privacy", "secondary")
+        privacy_button.clicked.connect(lambda: self.open_legal("Privacy Policy", PRIVACY_POLICY, PRIVACY_URL))
+        legal_actions.addWidget(terms_button)
+        legal_actions.addWidget(privacy_button)
+        form_layout.addLayout(legal_actions)
+
+        self.terms_checkbox = QCheckBox("I have read and accept the Terms of Use.")
+        self.terms_checkbox.setObjectName("consentCheckbox")
+        self.privacy_checkbox = QCheckBox("I have read and accept the Privacy Policy.")
+        self.privacy_checkbox.setObjectName("consentCheckbox")
+        form_layout.addWidget(self.terms_checkbox)
+        form_layout.addWidget(self.privacy_checkbox)
+
+        self.verify_button = AppButton("Verify License", "primary", "OK", "#0f766e")
+        self.verify_button.clicked.connect(self.verify_license)
+        self.trial_button = AppButton("Start 14-Day Local Trial", "secondary", "TR", "#0f766e")
+        self.trial_button.clicked.connect(self.continue_trial)
+        form_layout.addWidget(self.verify_button)
+        form_layout.addWidget(self.trial_button)
+        self.terms_checkbox.toggled.connect(self.update_consent_buttons)
+        self.privacy_checkbox.toggled.connect(self.update_consent_buttons)
+        self.update_consent_buttons()
         form_layout.addStretch()
         layout.addWidget(form, 1)
 
@@ -153,16 +208,34 @@ class LicenseWindow(QWidget):
             self.name_input.text(),
             self.contact_input.text(),
             self.license_input.text(),
+            terms_accepted=self.terms_checkbox.isChecked(),
+            privacy_accepted=self.privacy_checkbox.isChecked(),
         )
         self.message.set_status("ok" if ok else "error", message)
         if ok:
             self.accepted.emit()
 
     def continue_trial(self):
-        ok, message, _settings = start_local_trial(self.name_input.text(), self.contact_input.text())
+        ok, message, _settings = start_local_trial(
+            self.name_input.text(),
+            self.contact_input.text(),
+            terms_accepted=self.terms_checkbox.isChecked(),
+            privacy_accepted=self.privacy_checkbox.isChecked(),
+        )
         self.message.set_status("ok" if ok else "error", message)
         if ok:
             self.accepted.emit()
+
+    def update_consent_buttons(self):
+        enabled = self.terms_checkbox.isChecked() and self.privacy_checkbox.isChecked()
+        self.verify_button.setEnabled(enabled)
+        self.trial_button.setEnabled(enabled)
+        if not enabled:
+            self.message.set_status("info", "Review and accept both documents to continue.")
+
+    def open_legal(self, title: str, text: str, online_url: str):
+        dialog = LegalDocumentDialog(title, text, online_url, self)
+        dialog.exec()
 
 
 class UpdatePrompt(QWidget):

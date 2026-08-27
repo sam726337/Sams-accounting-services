@@ -27,7 +27,7 @@ class TallyConnectorPanel(QFrame):
         title.setObjectName("sectionTitle")
         layout.addWidget(title)
 
-        self.status_label = QLabel("Not tested")
+        self.status_label = QLabel("Not checked")
         self.status_label.setObjectName("connectorStatusIdle")
         layout.addWidget(self.status_label)
 
@@ -79,7 +79,7 @@ class TallyConnectorPanel(QFrame):
         self.log.setReadOnly(True)
         self.log.setMaximumBlockCount(80)
         self.log.setPlainText(
-            "Tally Prime me HTTP server port 9000 enable karein, company open rakhein, phir Test Connection dabayein."
+            "Enable the Tally Prime HTTP server on port 9000, open a company, then select Test Connection."
         )
         layout.addWidget(self.log)
 
@@ -90,7 +90,7 @@ class TallyConnectorPanel(QFrame):
         self.test_button.setEnabled(not busy)
         self.fetch_button.setEnabled(not busy)
         if busy:
-            self.status_label.setText("Working...")
+            self.status_label.setText("Checking connection…")
             self.status_label.setObjectName("connectorStatusIdle")
             self.status_label.style().unpolish(self.status_label)
             self.status_label.style().polish(self.status_label)
@@ -116,7 +116,7 @@ class TallyConnectorPanel(QFrame):
 
     def handle_worker_finished(self, action: str, ok: bool, message: str, payload: object):
         self.set_busy(False)
-        self.status_label.setText("Connected" if ok else "Failed")
+        self.status_label.setText("Connected" if ok else "Connection failed")
         self.status_label.setObjectName("connectorStatusOk" if ok else "connectorStatusError")
         self.status_label.style().unpolish(self.status_label)
         self.status_label.style().polish(self.status_label)

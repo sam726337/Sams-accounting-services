@@ -134,7 +134,7 @@ class SalesChoicePanel(QWidget):
 
         layout = QVBoxLayout(page)
         layout.setContentsMargins(28, 22, 28, 26)
-        layout.setSpacing(18)
+        layout.setSpacing(14)
 
         layout.addWidget(self.header())
 
@@ -145,7 +145,7 @@ class SalesChoicePanel(QWidget):
                 "Random Sale",
                 "Generate split taxable bills with GST, dates, round-off, preview, and Tally import.",
                 "Ready",
-                "#be123c",
+                "#0f766e",
                 "RS",
                 self.open_random_sale,
             )
@@ -200,11 +200,11 @@ class SalesChoicePanel(QWidget):
     ) -> QWidget:
         card = QFrame()
         card.setObjectName("choiceCard")
-        card.setMinimumHeight(260)
+        card.setMinimumHeight(224)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(24, 22, 24, 22)
-        layout.setSpacing(14)
+        layout.setContentsMargins(22, 20, 22, 18)
+        layout.setSpacing(12)
 
         top = QHBoxLayout()
         icon = QLabel()
@@ -226,9 +226,13 @@ class SalesChoicePanel(QWidget):
         layout.addWidget(body)
         layout.addStretch()
 
-        button = AppButton(f"Open {title}", "primary", initials, accent)
+        action_row = QHBoxLayout()
+        action_row.addStretch()
+        button = AppButton(f"Open {title}  →", "card")
+        button.setMinimumWidth(150)
         button.clicked.connect(handler)
-        layout.addWidget(button)
+        action_row.addWidget(button)
+        layout.addLayout(action_row)
         return card
 
     def open_choices(self):
@@ -398,7 +402,7 @@ class RandomSalePanel(QWidget):
 
         self.add_import_progress(layout)
 
-        self.form_hint = QLabel("Preview pehle banega, import uske baad enable hoga.")
+        self.form_hint = QLabel("Generate and review the preview before importing entries to Tally.")
         self.form_hint.setObjectName("smallText")
         self.form_hint.setWordWrap(True)
         layout.addWidget(self.form_hint)
@@ -433,7 +437,7 @@ class RandomSalePanel(QWidget):
         self.import_progress.setValue(0)
         progress_layout.addWidget(self.import_progress)
 
-        self.progress_detail_label = QLabel("Preview ke baad import timing yahan display hogi.")
+        self.progress_detail_label = QLabel("Import duration and remaining time will appear here after preview.")
         self.progress_detail_label.setObjectName("smallText")
         self.progress_detail_label.setWordWrap(True)
         progress_layout.addWidget(self.progress_detail_label)
@@ -1036,7 +1040,7 @@ class FixedSalePanel(RandomSalePanel):
         title_stack.setSpacing(2)
         title = QLabel("Fixed Sale")
         title.setObjectName("pageTitle")
-        subtitle = QLabel("Excel rows se exact amount wali sale entries preview karke Tally me import karein.")
+        subtitle = QLabel("Preview exact-value sales from Excel before importing them into Tally.")
         subtitle.setObjectName("pageSubtitle")
         subtitle.setWordWrap(True)
         title_stack.addWidget(title)
@@ -1142,7 +1146,7 @@ class FixedSalePanel(RandomSalePanel):
 
         self.add_import_progress(layout)
 
-        self.form_hint = QLabel("Excel me Date + Amount ya Date + Particulars + Narration + Debit/Credit format chalega.")
+        self.form_hint = QLabel("Supported Excel layouts: Date + Amount, or Date + Particulars + Narration + Debit/Credit.")
         self.form_hint.setObjectName("smallText")
         self.form_hint.setWordWrap(True)
         layout.addWidget(self.form_hint)

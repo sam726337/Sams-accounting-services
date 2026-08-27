@@ -69,8 +69,8 @@ class PurchaseRecoPanel(QWidget):
         self.pending_reco_after_update: tuple[Decimal, Decimal] | None = None
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 22, 28, 26)
-        layout.setSpacing(18)
+        layout.setContentsMargins(28, 20, 28, 24)
+        layout.setSpacing(14)
 
         layout.addWidget(self.header())
         self.stepper = WorkflowStepper(["Ledger GST", "Upload GST", "Fetch Tally", "Review", "Export"])
@@ -92,7 +92,7 @@ class PurchaseRecoPanel(QWidget):
         title_stack.setSpacing(2)
         title = QLabel("Purchase Reconciliation")
         title.setObjectName("pageTitle")
-        subtitle = QLabel("GST purchase Excel vs Tally Purchase vouchers")
+        subtitle = QLabel("Compare GST purchase files with vouchers recorded in Tally.")
         subtitle.setObjectName("pageSubtitle")
         title_stack.addWidget(title)
         title_stack.addWidget(subtitle)
@@ -106,11 +106,11 @@ class PurchaseRecoPanel(QWidget):
 
     def summary_cards(self) -> QHBoxLayout:
         row = QHBoxLayout()
-        row.setSpacing(14)
-        self.gst_card = KpiCard("GST rows", "0", "Loaded from Excel", "#2563eb")
+        row.setSpacing(12)
+        self.gst_card = KpiCard("GST rows", "0", "Loaded from Excel", "#0f766e")
         self.tally_card = KpiCard("Tally purchases", "0", "Fetched from localhost", "#0f766e")
-        self.matched_card = KpiCard("Matched", "0", "Exact matches", "#15803d")
-        self.review_card = KpiCard("Review", "0", "Probable or mismatch", "#c2410c")
+        self.matched_card = KpiCard("Matched", "0", "Exact matches", "#0f766e")
+        self.review_card = KpiCard("Review", "0", "Probable or mismatch", "#0f766e")
         row.addWidget(self.gst_card)
         row.addWidget(self.tally_card)
         row.addWidget(self.matched_card)
@@ -204,7 +204,7 @@ class PurchaseRecoPanel(QWidget):
         layout.setSpacing(12)
 
         header = QHBoxLayout()
-        title = QLabel("Reco Results")
+        title = QLabel("Reconciliation Results")
         title.setObjectName("sectionTitle")
         header.addWidget(title)
         header.addStretch()

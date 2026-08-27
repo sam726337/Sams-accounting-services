@@ -4,7 +4,7 @@ THEME = {
     "surface_soft": "#f8fafc",
     "line": "#d9e2ec",
     "text": "#101828",
-    "muted": "#667085",
+    "muted": "#475467",
     "primary": "#0f766e",
     "primary_dark": "#115e59",
     "sidebar": "#0b1220",
@@ -44,8 +44,8 @@ QLabel#brandTitle {
 
 QLabel#brandDetail,
 QLabel#userPlan {
-    color: #98a2b3;
-    font-size: 11px;
+    color: #b3bdcc;
+    font-size: 12px;
 }
 
 QPushButton#navItem,
@@ -75,8 +75,8 @@ QPushButton#tallyStatusConnected,
 QPushButton#tallyStatusDisconnected {
     border-radius: 7px;
     padding: 8px 12px;
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 700;
     text-align: center;
 }
 
@@ -160,7 +160,7 @@ QFrame#insightCard {
 
 QLabel#pageTitle {
     color: #101828;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 800;
 }
 
@@ -197,7 +197,7 @@ QLabel#heroBody,
 QLabel#cardBody,
 QLabel#smallText,
 QLabel.smallText {
-    color: #667085;
+    color: #475467;
     font-size: 13px;
 }
 
@@ -217,8 +217,8 @@ QLabel#heroTitle {
 QLabel#mutedLabel,
 QLabel#stateText,
 QLabel#formLabel {
-    color: #667085;
-    font-size: 11px;
+    color: #475467;
+    font-size: 12px;
 }
 
 QLabel#kpiValue {
@@ -235,7 +235,7 @@ QLabel#insightValue {
 
 QLabel#cardTitle {
     color: #101828;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 800;
 }
 
@@ -263,7 +263,7 @@ QLabel#progressTitle {
 }
 
 QLabel#badge {
-    background: #f0fdfa;
+    background: #eef6f5;
     color: #115e59;
     border-radius: 12px;
     padding: 5px 10px;
@@ -366,11 +366,19 @@ QPushButton#primaryButton {
     font-weight: 800;
 }
 
-QPushButton#primaryButton:disabled,
-QPushButton#secondaryButton:disabled {
-    background: #eef2f6;
-    color: #98a2b3;
-    border: 1px solid #d9e0ea;
+QPushButton#cardButton {
+    background: transparent;
+    color: #0f766e;
+    border: 1px solid #b8d8d4;
+    border-radius: 8px;
+    padding: 8px 13px;
+    font-weight: 800;
+    text-align: center;
+}
+
+QPushButton#cardButton:hover {
+    background: #eef8f6;
+    border-color: #0f766e;
 }
 
 QPushButton#primaryButton:hover {
@@ -388,6 +396,15 @@ QPushButton#secondaryButton {
 
 QPushButton#secondaryButton:hover {
     background: #edf2f7;
+}
+
+QPushButton#primaryButton:disabled,
+QPushButton#primaryButton:disabled:hover,
+QPushButton#secondaryButton:disabled,
+QPushButton#secondaryButton:disabled:hover {
+    background: #eef2f6;
+    color: #98a2b3;
+    border: 1px solid #d9e0ea;
 }
 
 QPushButton#filterButton,
@@ -486,13 +503,30 @@ QPlainTextEdit#connectorLog {
     font-size: 11px;
 }
 
+QTextBrowser#legalDocument {
+    background: #ffffff;
+    color: #344054;
+    border: 1px solid #d9e0ea;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: Segoe UI;
+    font-size: 13px;
+}
+
+QCheckBox#consentCheckbox {
+    color: #344054;
+    spacing: 9px;
+    font-size: 12px;
+}
+
 QTableWidget#activityTable {
-    border: 0;
+    border: 1px solid #d9e0ea;
+    border-radius: 7px;
     background: #ffffff;
     color: #101828;
     gridline-color: transparent;
     selection-background-color: transparent;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 QTableWidget#resultTable {
@@ -501,7 +535,7 @@ QTableWidget#resultTable {
     color: #101828;
     gridline-color: transparent;
     selection-background-color: transparent;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 QTableWidget#salesTable {
@@ -517,6 +551,33 @@ QTableWidget#salesTable {
 
 QTableWidget#salesTable::item {
     padding: 7px;
+}
+
+QTableWidget#activityTable::item:alternate,
+QTableWidget#resultTable::item:alternate,
+QTableWidget#salesTable::item:alternate {
+    background: #f8fafc;
+}
+
+QScrollBar:vertical {
+    background: #f1f5f9;
+    width: 11px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #c5ced8;
+    border-radius: 5px;
+    min-height: 32px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #98a2b3;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
 }
 
 QFrame#stepActive,
@@ -583,7 +644,11 @@ QHeaderView::section {
     color: #475467;
     border: 0;
     border-bottom: 1px solid #d9e0ea;
-    padding: 8px;
+    padding: 9px 8px;
     font-weight: 700;
+}
+
+QTableWidget::item {
+    padding: 7px;
 }
 """

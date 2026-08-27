@@ -1,4 +1,4 @@
-"""Sam's Accounting Desktop application package."""
+"""Sams Accounting Desktop application package."""
 
 from .config import APP_NAME, APP_VERSION
 
