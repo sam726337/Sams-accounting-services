@@ -1,0 +1,19 @@
+{
+  "name": "The Jishu IT Solution",
+  "short_name": "Jishu IT",
+  "description": "Website development, custom software, SaaS, desktop applications, and business automation.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fa",
+  "theme_color": "#102f38",
+  "lang": "en-IN",
+  "icons": [
+    {
+      "src": "/assets/jishu-logo-mark.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
