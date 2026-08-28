@@ -115,6 +115,23 @@
   margin-left: auto;
 }
 
+.contact-form input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+  accent-color: #0f766e;
+}
+
+.contact-form label > span {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #43595f;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
 @media (max-width: 860px) {
   .location-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
