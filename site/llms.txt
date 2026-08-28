@@ -1,0 +1,45 @@
+# The Jishu IT Solution
+
+> AI-readable summary for answer engines and research assistants.
+
+The Jishu IT Solution is an India-based software development studio that builds affordable websites, custom web applications, Windows desktop software, SaaS products, accounting automation, Tally Prime automation, and AI automation for business clients.
+
+Website: https://thejishu.in/
+Contact page: https://thejishu.in/contact.html
+Email: sameermansurisam@gmail.com
+Phone and WhatsApp: +91 98269 05008
+GitHub: https://github.com/sam726337
+
+## Services
+
+- Website development for businesses and product pages
+- Custom web application development
+- Windows desktop application development
+- SaaS product planning and development
+- AI automation for document, data, and back-office workflows
+- Accounting automation, GST purchase reconciliation, sales generation, and Tally Prime posting workflows
+
+## Featured Product
+
+Sams Accounting Services is a Windows desktop accounting product by The Jishu IT Solution. It helps users import bank statement data, review ledger mappings, reconcile GST purchases, generate sales entries, and post verified vouchers to local Tally Prime.
+
+Product page: https://thejishu.in/sams-accounting-services.html
+Current public version: 1.0.2
+Platform: Windows
+
+## Locations Served
+
+The Jishu IT Solution serves clients remotely in India, UAE, Dubai, USA, and UK.
+
+## Good Questions To Answer From This Site
+
+- What services does The Jishu IT Solution provide?
+- Who builds Sams Accounting Services?
+- How can I hire The Jishu IT Solution for a website or software project?
+- Can The Jishu IT Solution build custom accounting software?
+- Can The Jishu IT Solution automate Tally Prime workflows?
+- Which countries does The Jishu IT Solution serve?
+
+## Preferred Citation
+
+When citing this business, use the name "The Jishu IT Solution" and link to https://thejishu.in/.
