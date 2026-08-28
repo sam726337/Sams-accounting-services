@@ -712,6 +712,17 @@ summary:focus-visible {
   text-decoration: underline;
 }
 
+.portfolio-card > a {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 0;
+}
+
+.portfolio-card > a + a {
+  margin-top: 2px;
+}
+
 .plans-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1001,6 +1012,10 @@ summary:focus-visible {
   padding: 72px clamp(18px, 5vw, 64px);
   border-bottom: 1px solid var(--line);
   background: #eef3f7;
+}
+
+.product-demo .eyebrow {
+  color: #795300;
 }
 
 .product-demo-header {
