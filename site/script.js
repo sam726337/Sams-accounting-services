@@ -3,6 +3,46 @@ document.querySelectorAll(".current-year").forEach((node) => {
   node.textContent = currentYear;
 });
 
+const siteHeader = document.querySelector(".site-header");
+const mainNavigation = siteHeader?.querySelector(".nav-links");
+
+if (siteHeader && mainNavigation) {
+  const navigationId = mainNavigation.id || "main-navigation";
+  const menuButton = document.createElement("button");
+
+  mainNavigation.id = navigationId;
+  menuButton.className = "nav-toggle";
+  menuButton.type = "button";
+  menuButton.setAttribute("aria-controls", navigationId);
+  menuButton.setAttribute("aria-expanded", "false");
+  menuButton.setAttribute("aria-label", "Open navigation menu");
+  menuButton.innerHTML = '<span aria-hidden="true"></span><span class="nav-toggle-label">Menu</span>';
+  siteHeader.insertBefore(menuButton, mainNavigation);
+  siteHeader.classList.add("nav-ready");
+
+  const setMenuOpen = (isOpen) => {
+    menuButton.setAttribute("aria-expanded", String(isOpen));
+    menuButton.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
+    mainNavigation.dataset.open = String(isOpen);
+  };
+
+  menuButton.addEventListener("click", () => {
+    setMenuOpen(menuButton.getAttribute("aria-expanded") !== "true");
+  });
+
+  mainNavigation.addEventListener("click", (event) => {
+    if (event.target.closest("a")) setMenuOpen(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setMenuOpen(false);
+  });
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 860) setMenuOpen(false);
+  });
+}
+
 const whatsappForm = document.querySelector("[data-whatsapp-form]");
 
 if (whatsappForm) {
