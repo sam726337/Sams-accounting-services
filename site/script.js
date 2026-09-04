@@ -3,6 +3,77 @@ document.querySelectorAll(".current-year").forEach((node) => {
   node.textContent = currentYear;
 });
 
+const attributionKeys = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "gclid",
+  "fbclid",
+  "msclkid",
+];
+const attributionStorageKeys = {
+  firstTouch: "jishu_first_touch_attribution",
+  lastTouch: "jishu_last_touch_attribution",
+};
+
+const readStoredAttribution = (key) => {
+  try {
+    return JSON.parse(window.localStorage.getItem(key)) || {};
+  } catch {
+    return {};
+  }
+};
+
+const storeAttribution = (key, value) => {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Tracking must never interrupt the visitor's journey.
+  }
+};
+
+const currentCampaignAttribution = attributionKeys.reduce((values, key) => {
+  const value = new URLSearchParams(window.location.search).get(key);
+  if (value) values[key] = value.slice(0, 100);
+  return values;
+}, {});
+
+if (Object.keys(currentCampaignAttribution).length) {
+  const attribution = {
+    ...currentCampaignAttribution,
+    landing_page: window.location.pathname,
+    captured_at: new Date().toISOString(),
+  };
+
+  if (!Object.keys(readStoredAttribution(attributionStorageKeys.firstTouch)).length) {
+    storeAttribution(attributionStorageKeys.firstTouch, attribution);
+  }
+  storeAttribution(attributionStorageKeys.lastTouch, attribution);
+}
+
+const getAttributionParameters = () => {
+  const firstTouch = readStoredAttribution(attributionStorageKeys.firstTouch);
+  const lastTouch = readStoredAttribution(attributionStorageKeys.lastTouch);
+
+  return attributionKeys.reduce((parameters, key) => {
+    if (firstTouch[key]) parameters[`first_${key}`] = firstTouch[key];
+    if (lastTouch[key]) parameters[`last_${key}`] = lastTouch[key];
+    return parameters;
+  }, {});
+};
+
+const trackEvent = (eventName, parameters = {}) => {
+  if (typeof window.gtag !== "function") return;
+
+  window.gtag("event", eventName, {
+    page_path: window.location.pathname,
+    ...getAttributionParameters(),
+    ...parameters,
+  });
+};
+
 const siteHeader = document.querySelector(".site-header");
 const mainNavigation = siteHeader?.querySelector(".nav-links");
 
@@ -67,6 +138,10 @@ if (whatsappForm) {
     ].join("\n");
 
     status.textContent = "Opening WhatsApp with your enquiry...";
+    trackEvent("contact_form_intent", {
+      contact_method: "whatsapp",
+      service: String(formData.get("service") || "not_selected").slice(0, 100),
+    });
     window.location.href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
   });
 }
@@ -98,6 +173,70 @@ if (websiteAuditForm) {
     ].join("\n");
 
     status.textContent = "Opening WhatsApp with your free audit request...";
+    trackEvent("free_audit_request", {
+      contact_method: "whatsapp",
+      target_market: String(formData.get("market") || "not_selected").slice(0, 100),
+      primary_goal: String(formData.get("goal") || "not_selected").slice(0, 100),
+    });
     window.location.href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
   });
 }
+
+document.addEventListener("click", (event) => {
+  const link = event.target.closest("a[href]");
+  if (!link) return;
+
+  const href = link.href;
+
+  if (/\.exe(?:$|[?#])/i.test(href)) {
+    trackEvent("installer_download", {
+      file_name: href.split("/").pop()?.split(/[?#]/)[0] || "windows_installer",
+      link_url: href,
+    });
+  }
+
+  if (/https?:\/\/(?:www\.)?(?:wa\.me|api\.whatsapp\.com)\//i.test(href)) {
+    trackEvent("whatsapp_click", {
+      link_text: link.textContent.trim().slice(0, 100),
+      link_location: link.closest("form") ? "form" : "page_link",
+    });
+  }
+
+  if (link.protocol === "mailto:" || link.protocol === "tel:") {
+    trackEvent("contact_click", {
+      contact_method: link.protocol === "mailto:" ? "email" : "phone",
+      link_location: link.closest("footer") ? "footer" : "page",
+    });
+  }
+});
+
+document.querySelectorAll("video").forEach((video, videoIndex) => {
+  const videoName = video.getAttribute("aria-label") || `video_${videoIndex + 1}`;
+  const reportedMilestones = new Set();
+
+  video.addEventListener("play", () => {
+    if (reportedMilestones.has("play")) return;
+    reportedMilestones.add("play");
+    trackEvent("demo_video_play", { video_name: videoName });
+  });
+
+  video.addEventListener("timeupdate", () => {
+    if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+
+    const progress = (video.currentTime / video.duration) * 100;
+    [25, 50, 75].forEach((milestone) => {
+      if (progress < milestone || reportedMilestones.has(milestone)) return;
+      reportedMilestones.add(milestone);
+      trackEvent("demo_video_progress", {
+        video_name: videoName,
+        video_percent: milestone,
+      });
+    });
+  });
+
+  video.addEventListener("ended", () => {
+    if (reportedMilestones.has("complete")) return;
+    reportedMilestones.add("complete");
+    trackEvent("demo_video_complete", { video_name: videoName });
+  });
+});
